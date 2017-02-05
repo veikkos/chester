@@ -58,3 +58,7 @@ Tested with ROMs from
 * Blargg
 
 Also thanks to numerous people over various emulator forums for their great research and help for others.
+
+## Status
+
+[![Build Status](https://api.travis-ci.org/veikkos/chester.svg?branch=public)](https://travis-ci.org/veikkos/chester)
