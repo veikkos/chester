@@ -8,11 +8,11 @@ Chester is probably NOT suitable for playing games, as weird as it may sound. It
 
 ## What it does ##
 
-Chester does play several ROM-only and MBC1 games pretty well. It supports in-game saving for battery backed MBC1 cartridges. Its accurate CPU instruction implementation passes Blargg's CPU instruction tests.
+Chester does play several ROM-only, MBC1 and MBC3 games pretty well. It supports in-game saving for battery backed MBC1/MBC3 cartridges. Its accurate CPU instruction implementation passes Blargg's CPU instruction tests.
 
 ## What is it missing ##
 
-Sounds, accurate instruction and memory timing, accurate timers, configurable buttons, support for many cartridge types, windows resize, full GPU accuracy... And many other things.
+Sounds, (very) accurate instruction and memory timing, (very) accurate timers, configurable buttons, full support for many cartridge types, window resize, full GPU accuracy... And many other things.
 
 ## Dependencies ##
 
@@ -34,7 +34,7 @@ $ make release
 
 Run
 ```
-$ ./gb path/to/rom.gb
+$ ./gbe path/to/rom.gb
 ```
 
 Optionally bootloader can be used by providing "DMG_ROM.bin" in working directory.
