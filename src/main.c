@@ -64,7 +64,7 @@ int main(int argc, char **argv)
     }
 
   mmu_reset(&mem);
-  mmu_set_rom(&mem, rom);
+  mmu_set_rom(&mem, rom, get_type(rom));
 
   bootloader = read_file(bootloader_file, false);
 
@@ -83,8 +83,7 @@ int main(int argc, char **argv)
 
   sync_init(&s, 100000);
 
-  // Currently only MBC1+RAM+BATTERY saves are supported
-  save_supported = rom[0x0147] == 0x03 ? true : false;
+  save_supported = (mem.rom.type & MBC_BATTERY_MASK);
 
   if (save_supported)
     {

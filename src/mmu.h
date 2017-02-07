@@ -6,6 +6,18 @@
 
 #include <stdint.h>
 
+typedef enum {
+  NONE = 0x00,
+  MBC1 = 0x01,
+  MBC1_BATTERY = 0x81,
+  MBC3 = 0x02,
+  MBC3_BATTERY = 0x82,
+  NOT_SUPPORTED = 0x03
+} mbc;
+
+#define MBC_TYPE_MASK (uint8_t)0x7F
+#define MBC_BATTERY_MASK (uint8_t)0x80
+
 struct memory_s {
   uint8_t ie_register;
   uint8_t working_ram[127];
@@ -16,7 +28,10 @@ struct memory_s {
   uint8_t internal_8k_ram[8192];
   uint8_t oam[160];
   uint8_t video_ram[8192];
-  uint8_t *rom;
+  struct {
+    uint8_t *data;
+    mbc type;
+  }rom;
   uint8_t *bootloader;
   bool bootloader_running;
   keys *k;
@@ -107,7 +122,7 @@ void mmu_debug_print(memory *mem, level l);
 
 void mmu_set_keys(memory *mem, keys *k);
 
-void mmu_set_rom(memory *mem, uint8_t *rom);
+void mmu_set_rom(memory *mem, uint8_t *rom, mbc type);
 
 void mmu_set_bootloader(memory *mem, uint8_t *bootloader);
 

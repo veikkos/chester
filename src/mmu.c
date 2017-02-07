@@ -19,7 +19,8 @@ void mmu_reset(memory *mem)
   memset(mem->oam, 0, sizeof mem->oam);
   memset(mem->video_ram, 0, sizeof mem->video_ram);
 
-  mem->rom = NULL;
+  mem->rom.data = NULL;
+  mem->rom.type = NONE;
 
   mem->k = NULL;
 
@@ -81,9 +82,10 @@ void mmu_debug_print(memory *mem, level l)
 }
 #endif
 
-void mmu_set_rom(memory *mem, uint8_t *rom)
+void mmu_set_rom(memory *mem, uint8_t *rom, mbc type)
 {
-  mem->rom = rom;
+  mem->rom.type = type;
+  mem->rom.data = rom;
 }
 
 void mmu_set_bootloader(memory *mem, uint8_t *bootloader)
@@ -109,10 +111,21 @@ void mmu_write_byte(memory *mem,
     case 0x2000:
     case 0x3000:
       {
-        uint8_t val = input & 0x1F;
-        if (!val)
-          ++val;
-        mem->banks.rom.selected = val | (mem->banks.rom.selected & 0x60);
+        uint8_t val;
+        switch(mem->rom.type & MBC_TYPE_MASK)
+          {
+          case MBC3:
+            val = input & 0x7F;
+            if (!val) ++val;
+            mem->banks.rom.selected = val;
+            break;
+          default:
+            val = input & 0x1F;
+            if (!val) ++val;
+            mem->banks.rom.selected = val | (mem->banks.rom.selected & 0x60);
+            break;
+          }
+
         gb_log(VERBOSE, "Selected ROM bank %d", mem->banks.rom.selected);
         mem->banks.rom.offset = 0x4000 * (mem->banks.rom.selected - 1);
       }
@@ -254,12 +267,12 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
     case 0x1000:
     case 0x2000:
     case 0x3000:
-      return mem->rom[address];
+      return mem->rom.data[address];
     case 0x4000:
     case 0x5000:
     case 0x6000:
     case 0x7000:
-      return mem->rom[address + mem->banks.rom.offset];
+      return mem->rom.data[address + mem->banks.rom.offset];
     case 0x8000:
     case 0x9000:
       return mem->video_ram[address - 0x8000];
