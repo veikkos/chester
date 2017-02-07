@@ -21,6 +21,8 @@ void cpu_reset(registers *reg)
   reg->halt = false;
   reg->stop = false;
 
+  reg->halt_mask = 0xFF;
+
   reg->timer.tick = 0;
   reg->timer.div = 0;
 }
@@ -42,8 +44,71 @@ void cpu_debug_print(registers *reg, level l)
   gb_log(l, "   - m: %u", reg->clock.m);
   gb_log(l, "   - t: %u", reg->clock.t);
 #endif
+  gb_log(l, " - timer");
+  gb_log(l, "   - tick: %u", reg->timer.tick);
+  gb_log(l, "   - div: %u", reg->timer.div);
+  gb_log(l, "   - t_timer: %u", reg->timer.t_timer);
 }
 #endif
+
+static inline void check_halt_release(registers *reg, memory *mem)
+{
+  uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
+  if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
+  if_flags &= reg->halt_mask;
+
+  if (if_flags)
+    {
+      reg->halt = false;
+      reg->halt_mask = 0xFF;
+    }
+}
+
+static inline void check_isr(registers *reg, memory *mem)
+{
+  uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
+  if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
+
+  if (if_flags)
+    {
+      if (if_flags & MEM_IF_VBLANK_FLAG)
+        {
+          gb_log (VERBOSE, "VBLANK ISR");
+
+          if_flags &= ~MEM_IF_VBLANK_FLAG;
+          mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
+
+          jump_to_isr_address(reg, mem, MEM_VBLANK_ISR_ADDR);
+        }
+      else if (if_flags & MEM_IF_LCDC_FLAG)
+        {
+          gb_log (VERBOSE, "LCD ISR");
+
+          if_flags &= ~MEM_IF_LCDC_FLAG;
+          mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
+
+          jump_to_isr_address(reg, mem, MEM_LCD_ISR_ADDR);
+        }
+      else if (if_flags & MEM_IF_TIMER_OVF_FLAG)
+        {
+          gb_log (VERBOSE, "TIMER ISR");
+
+          if_flags &= ~MEM_IF_TIMER_OVF_FLAG;
+          mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
+
+          jump_to_isr_address(reg, mem, MEM_TIMER_ISR_ADDR);
+        }
+      else if (if_flags & MEM_IF_PIN_FLAG)
+        {
+          gb_log (ERROR, "INPUT ISR");
+
+          if_flags &= ~MEM_IF_PIN_FLAG;
+          mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
+
+          jump_to_isr_address(reg, mem, MEM_PIN_ISR_ADDR);
+        }
+    }
+}
 
 static inline int sub_command(registers *reg, memory *mem)
 {
@@ -1140,7 +1205,7 @@ int cpu_next_command(registers *reg, memory *mem)
       break;
     case 0x76:
       gb_log(ALL, "HALT");
-      halt(reg);
+      halt(reg, mem);
       break;
     case 0x10:
       gb_log(ALL, "STOP");
@@ -2158,60 +2223,14 @@ int cpu_next_command(registers *reg, memory *mem)
 
   reg->clock.m += reg->clock.last.t / 4;
 
-  if (reg->ime)
+  if (reg->halt)
     {
-      uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
-      if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
-
-      if (if_flags)
-        {
-          if (if_flags & MEM_IF_VBLANK_FLAG)
-            {
-              gb_log (VERBOSE, "VBLANK ISR");
-
-              if_flags &= ~MEM_IF_VBLANK_FLAG;
-              mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
-
-              jump_to_isr_address(reg, mem, MEM_VBLANK_ISR_ADDR);
-            }
-          else if (if_flags & MEM_IF_LCDC_FLAG)
-            {
-              gb_log (VERBOSE, "LCD ISR");
-
-              if_flags &= ~MEM_IF_LCDC_FLAG;
-              mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
-
-              jump_to_isr_address(reg, mem, MEM_LCD_ISR_ADDR);
-            }
-          else if (if_flags & MEM_IF_TIMER_OVF_FLAG)
-            {
-              gb_log (VERBOSE, "TIMER ISR");
-
-              if_flags &= ~MEM_IF_TIMER_OVF_FLAG;
-              mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
-
-              jump_to_isr_address(reg, mem, MEM_TIMER_ISR_ADDR);
-            }
-          else if (if_flags & MEM_IF_PIN_FLAG)
-            {
-              gb_log (ERROR, "INPUT ISR");
-
-              if_flags &= ~MEM_IF_PIN_FLAG;
-              mmu_write_byte(mem, MEM_IF_ADDR, if_flags);
-
-              jump_to_isr_address(reg, mem, MEM_PIN_ISR_ADDR);
-            }
-        }
+      check_halt_release(reg, mem);
     }
-  else if (reg->halt)
-    {
-      uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
-      if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
 
-      if (if_flags)
-        {
-          reg->halt = false;
-        }
+  if (reg->ime && !reg->halt)
+    {
+      check_isr(reg, mem);
     }
 
   return 0;

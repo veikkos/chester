@@ -120,9 +120,10 @@ static inline void nop(registers *reg)
   reg->clock.last.t = 4;
 }
 
-static inline void halt(registers *reg)
+static inline void halt(registers *reg, memory *mem)
 {
   reg->halt = true;
+  reg->halt_mask = ~mmu_read_byte(mem, MEM_IF_ADDR);
 
   reg->clock.last.t = 4;
 }
@@ -1104,8 +1105,6 @@ static inline void ldhl_sp_n(registers *reg, int8_t n)
 
 static inline void jump_to_isr_address(registers *reg, memory *mem, uint16_t addr)
 {
-  reg->halt = false;
-
   reg->ime = false;
 
   reg->sp -= 2;
