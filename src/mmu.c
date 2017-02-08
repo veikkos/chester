@@ -31,6 +31,7 @@ void mmu_reset(memory *mem)
 
   mem->banks.rom.selected = 1;
   mem->banks.rom.offset = 0;
+  mem->banks.rom.blocks = 1;
 
   mem->banks.ram.selected = 0;
   mem->banks.ram.enabled = true;
@@ -82,10 +83,11 @@ void mmu_debug_print(memory *mem, level l)
 }
 #endif
 
-void mmu_set_rom(memory *mem, uint8_t *rom, mbc type)
+void mmu_set_rom(memory *mem, uint8_t *rom, mbc type, uint32_t rom_size)
 {
   mem->rom.type = type;
   mem->rom.data = rom;
+  mem->banks.rom.blocks = rom_size / 0x4000;
 }
 
 void mmu_set_bootloader(memory *mem, uint8_t *bootloader)
@@ -97,6 +99,15 @@ void mmu_set_bootloader(memory *mem, uint8_t *bootloader)
 void mmu_set_keys(memory *mem, keys *k)
 {
   mem->k = k;
+}
+
+static inline void mmu_select_rom_bank(memory *mem, const uint8_t bank)
+{
+  mem->banks.rom.selected = bank;
+  mem->banks.rom.selected &= mem->banks.rom.blocks - 1;
+  mem->banks.rom.offset = 0x4000 * (mem->banks.rom.selected - 1);
+
+  gb_log(VERBOSE, "Selected ROM bank %d", mem->banks.rom.selected);
 }
 
 void mmu_write_byte(memory *mem,
@@ -117,17 +128,15 @@ void mmu_write_byte(memory *mem,
           case MBC3:
             val = input & 0x7F;
             if (!val) ++val;
-            mem->banks.rom.selected = val;
             break;
           default:
             val = input & 0x1F;
-            if (!val) ++val;
-            mem->banks.rom.selected = val | (mem->banks.rom.selected & 0x60);
+            if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
+            val |= (mem->banks.rom.selected & 0x60);
             break;
           }
 
-        gb_log(VERBOSE, "Selected ROM bank %d", mem->banks.rom.selected);
-        mem->banks.rom.offset = 0x4000 * (mem->banks.rom.selected - 1);
+        mmu_select_rom_bank(mem, val);
       }
       break;
     case 0x4000:
@@ -139,10 +148,19 @@ void mmu_write_byte(memory *mem,
         }
       else
         {
-          uint8_t val = (input & 0x03) << 5;
-          mem->banks.rom.selected = val | (mem->banks.rom.selected & 0x1F);
-          gb_log(VERBOSE, "Selected ROM bank %d", mem->banks.rom.selected);
-          mem->banks.rom.offset = 0x4000 * (mem->banks.rom.selected - 1);
+          uint8_t val = (input & 0x03) << 5 | (mem->banks.rom.selected & 0x1F);
+
+          switch(mem->rom.type & MBC_TYPE_MASK)
+            {
+            case MBC3:
+              if (!val) ++val;
+              break;
+            default:
+              if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
+              break;
+            }
+
+          mmu_select_rom_bank(mem, val);
         }
       break;
     case 0x6000:

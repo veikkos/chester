@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-uint8_t* read_file(const char* path, const bool is_rom)
+uint8_t* read_file(const char* path, uint32_t *size, const bool is_rom)
 {
   long file_size;
   char *buffer = NULL;
@@ -18,6 +18,12 @@ uint8_t* read_file(const char* path, const bool is_rom)
       if (is_rom && file_size <= 0x014F)
         {
           gb_log(ERROR, "File too small");
+          fclose (file);
+          return NULL;
+        }
+      else if (!is_rom && file_size != 0x0100)
+        {
+          gb_log(ERROR, "Invalid bootloader size");
           fclose (file);
           return NULL;
         }
@@ -41,6 +47,7 @@ uint8_t* read_file(const char* path, const bool is_rom)
           return NULL;
         }
 
+      if (size) *size = read_size;
       fclose (file);
     }
 

@@ -37,6 +37,7 @@ int main(int argc, char **argv)
   bool save_supported;
   int ret_val = 0;
   const char* bootloader_file = "DMG_ROM.bin";
+  uint32_t rom_size = 0;
 
   int keys_cumulative_ticks = 0;
   const int keys_ticks = 10000;
@@ -47,7 +48,7 @@ int main(int argc, char **argv)
       return 1;
     }
 
-  rom = read_file(argv[1], true);
+  rom = read_file(argv[1], &rom_size, true);
 
   if (!rom)
     {
@@ -64,9 +65,9 @@ int main(int argc, char **argv)
     }
 
   mmu_reset(&mem);
-  mmu_set_rom(&mem, rom, get_type(rom));
+  mmu_set_rom(&mem, rom, get_type(rom), rom_size);
 
-  bootloader = read_file(bootloader_file, false);
+  bootloader = read_file(bootloader_file, NULL, false);
 
   if (bootloader)
     {

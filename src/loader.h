@@ -7,7 +7,7 @@
 #include "logger.h"
 #include "mmu.h"
 
-uint8_t* read_file(const char* path, const bool is_rom);
+uint8_t* read_file(const char* path, uint32_t *size, const bool is_rom);
 
 mbc get_type(uint8_t* rom);
 

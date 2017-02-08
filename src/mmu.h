@@ -45,6 +45,7 @@ struct memory_s {
     struct {
       uint8_t selected;
       uint32_t offset;
+      uint8_t blocks;
     }rom;
     struct {
       bool enabled, written;
@@ -122,7 +123,7 @@ void mmu_debug_print(memory *mem, level l);
 
 void mmu_set_keys(memory *mem, keys *k);
 
-void mmu_set_rom(memory *mem, uint8_t *rom, mbc type);
+void mmu_set_rom(memory *mem, uint8_t *rom, mbc type, uint32_t rom_size);
 
 void mmu_set_bootloader(memory *mem, uint8_t *bootloader);
 
