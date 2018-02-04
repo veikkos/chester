@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    tools:context="com.chester.chesterapp.MainActivity"
+    android:id="@+id/main">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <view
+            class="com.chester.chesterapp.ChesterView"
+            android:id="@+id/chesterView"
+            android:layout_width="match_parent"
+            android:layout_height="330dp" />
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="fill_parent"
+            android:background="@color/background"
+            android:layout_below="@+id/chesterView" >
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/direction" >
+
+                <Button
+                    android:id="@+id/up"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="U"
+                    android:layout_toRightOf="@+id/left"/>
+
+                <Button
+                    android:id="@+id/down"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="D"
+                    android:layout_below="@+id/left"
+                    android:layout_toRightOf="@+id/left" />
+
+                <Button
+                    android:id="@+id/left"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="L"
+                    android:layout_below="@+id/up" />
+
+                <Button
+                    android:id="@+id/right"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="R"
+                    android:layout_below="@+id/up"
+                    android:layout_toRightOf="@+id/up" />
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/buttons"
+                android:layout_toRightOf="@+id/direction">
+
+                <Button
+                    android:id="@+id/a"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="A"
+                    android:layout_alignParentRight="true"/>
+
+                <Button
+                    android:id="@+id/b"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="B"
+                    android:layout_below="@+id/a"
+                    android:layout_alignParentRight="true"/>
+            </RelativeLayout>
+
+            <RelativeLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/direction"
+                android:layout_centerHorizontal="true">
+
+                <Button
+                    android:id="@+id/start"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="Start"
+                    android:layout_toRightOf="@+id/select"/>
+
+                <Button
+                    android:id="@+id/select"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="Select" />
+            </RelativeLayout>
+
+        </RelativeLayout>
+    </RelativeLayout>
+</LinearLayout>

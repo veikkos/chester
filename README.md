@@ -45,7 +45,7 @@ Optionally bootloader can be used by providing "DMG_ROM.bin" in working director
 
 * Ubuntu 14.04 LTS
 * Windows 10 (MinGW)
-(* Android but example not yet(?) published)
+* Android
 
 ## Thanks to ##
 
