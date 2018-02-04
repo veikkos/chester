@@ -10,6 +10,8 @@ struct keys_s {
 
 typedef struct keys_s keys;
 
+typedef int (*keys_cb)(keys*);
+
 #define P15 0x20
 #define P14 0x10
 
@@ -19,8 +21,6 @@ typedef struct keys_s keys;
 #define P10 0x01
 
 void keys_reset(keys *k);
-
-int keys_update(keys *k);
 
 void key_get_raw_output(keys *k, uint8_t *key_in, uint8_t *key_out);
 

@@ -1,0 +1,225 @@
+#include "chester.h"
+#include "cpu.h"
+#include "gpu.h"
+#include "interrupts.h"
+#include "keys.h"
+#include "mmu.h"
+#include "loader.h"
+#include "logger.h"
+#include "timer.h"
+#include "save.h"
+#include "sync.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <libgen.h>
+
+bool init(chester *chester, const char* rom, const char* save_path, const char* bootloader)
+{
+  chester->rom = NULL;
+  chester->bootloader = NULL;
+
+  chester->keys_cumulative_ticks = 0;
+  chester->keys_ticks = 10000;
+
+  chester->save_timer = 0;
+  chester->save_game_file = NULL;
+  chester->save_supported = false;
+
+  uint32_t rom_size = 0;
+  chester->rom = read_file(rom, &rom_size, true);
+
+  if (!chester->rom)
+    {
+      return false;
+    }
+
+  gb_log_print_rom_info(chester->rom);
+
+  cpu_reset(&chester->cpu_reg);
+
+  if (!gpu_init(&chester->g, chester->gpu_init_cb))
+    {
+      return false;
+    }
+
+  mmu_reset(&chester->mem);
+  mmu_set_rom(&chester->mem, chester->rom, get_type(chester->rom), rom_size);
+
+  chester->bootloader = read_file(bootloader, NULL, false);
+
+  if (chester->bootloader)
+    {
+      chester->cpu_reg.pc = 0x0000;
+      mmu_set_bootloader(&chester->mem, chester->bootloader);
+    }
+  else
+    {
+      gb_log (INFO, "No bootloader found at ./%s", bootloader);
+    }
+
+  mmu_set_keys(&chester->mem, &chester->k);
+  keys_reset(&chester->k);
+
+  sync_init(&chester->s, 100000, chester->ticks_cb);
+
+  chester->save_supported = (chester->mem.rom.type & MBC_BATTERY_MASK);
+
+  if (chester->save_supported)
+    {
+      char* base_name_cpy = strdup(rom);
+      char* base_name = basename(base_name_cpy);
+
+      const char extension[] = ".sav";
+      const size_t save_file_path_length = strlen(base_name) + strlen(extension) + 1 +
+              (save_path ? strlen(save_path) : 0);
+      chester->save_game_file = malloc(save_file_path_length);
+      if (save_path)
+        {
+          strcpy(chester->save_game_file, save_path);
+          strcat(chester->save_game_file, base_name);
+        }
+      else
+        {
+          strcpy(chester->save_game_file, base_name);
+        }
+      strcat(chester->save_game_file, extension);
+
+      load_game(chester->save_game_file, &chester->mem);
+      free(base_name_cpy);
+    }
+
+  return true;
+}
+
+void register_keys_callback(chester *chester, keys_cb cb)
+{
+  chester->k_cb = cb;
+}
+
+void register_get_ticks_callback(chester *chester, get_ticks_cb cb)
+{
+  chester->ticks_cb = cb;
+}
+
+void register_delay_callback(chester *chester, delay_cb cb)
+{
+  chester->delay_cb = cb;
+}
+
+void register_gpu_init_callback(chester *chester, gpu_init_cb cb)
+{
+  chester->gpu_init_cb = cb;
+}
+
+void register_gpu_uninit_callback(chester *chester, gpu_uninit_cb cb)
+{
+  chester->gpu_uninit_cb = cb;
+}
+
+void register_gpu_lock_texture_callback(chester *chester, gpu_lock_texture_cb cb)
+{
+  chester->gpu_lock_texture_cb = cb;
+}
+
+void register_gpu_render_callback(chester *chester, gpu_render_cb cb)
+{
+  chester->gpu_render_cb = cb;
+}
+
+void uninit(chester *chester)
+{
+  if (chester->save_supported && chester->mem.banks.ram.written)
+    {
+      save_game(chester->save_game_file, &chester->mem);
+    }
+
+  free(chester->bootloader);
+
+  free(chester->rom);
+
+  chester->gpu_uninit_cb(&chester->g);
+
+  gb_log_close_file();
+}
+
+int run(chester *chester)
+{
+  int run_cycles = 4194304 / 4;
+  while(run_cycles > 0)
+    {
+      if (chester->bootloader && !chester->mem.bootloader_running)
+        {
+          mmu_set_bootloader(&chester->mem, NULL);
+
+          free(chester->bootloader);
+          chester->bootloader = NULL;
+
+          cpu_reset(&chester->cpu_reg);
+        }
+
+      cpu_debug_print(&chester->cpu_reg, ALL);
+      mmu_debug_print(&chester->mem, ALL);
+      gpu_debug_print(&chester->g, ALL);
+
+      if (cpu_next_command(&chester->cpu_reg, &chester->mem))
+        {
+          gb_log (ERROR, "Could not process any longer");
+          cpu_debug_print(&chester->cpu_reg, ERROR);
+          mmu_debug_print(&chester->mem, ERROR);
+          return -1;
+        }
+
+      // STOP should be handled
+      if (gpu_update(&chester->g, &chester->mem, chester->cpu_reg.clock.last.t, chester->gpu_render_cb, chester->gpu_lock_texture_cb))
+        {
+          gb_log (ERROR, "GPU error");
+          gpu_debug_print(&chester->g, ERROR);
+          return -2;
+        }
+
+      if (!chester->cpu_reg.stop)
+        timer_update(&chester->cpu_reg, &chester->mem);
+
+      if (chester->keys_cumulative_ticks > chester->keys_ticks)
+        {
+          if (chester->save_supported && chester->save_timer++ >= 10000)
+            {
+              chester->save_timer = 0;
+
+              if (chester->mem.banks.ram.written)
+                {
+                  chester->mem.banks.ram.written = false;
+
+                  save_game(chester->save_game_file, &chester->mem);
+                }
+            }
+
+          chester->keys_cumulative_ticks = 0;
+
+          switch(chester->k_cb(&chester->k))
+            {
+            case -1:
+              return 1;
+            case 1:
+              isr_set_if_flag(&chester->mem, MEM_IF_PIN_FLAG);
+              chester->cpu_reg.halt =  false;
+              chester->cpu_reg.stop =  false;
+              break;
+            default:
+              break;
+            }
+        }
+      else
+        {
+          chester->keys_cumulative_ticks += chester->cpu_reg.clock.last.t;
+        }
+
+      sync_time(&chester->s, chester->cpu_reg.clock.last.t, chester->ticks_cb, chester->delay_cb);
+
+      run_cycles -= chester->cpu_reg.clock.last.t;
+    }
+
+  return 0;
+}

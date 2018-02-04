@@ -5,8 +5,6 @@
 
 #include <stdint.h>
 
-#include <SDL2/SDL.h>
-
 typedef enum state_e {
   READ_OAM = 0x02,
   READ_VRAM = 0x03,
@@ -19,13 +17,16 @@ struct gpu_s {
     uint16_t t;
   } clock;
 
-  SDL_Window *window;
-  SDL_Renderer *renderer;
-  SDL_Texture *texture;
+  void *app_data;
   void *locked_pixel_data;
 };
 
 typedef struct gpu_s gpu;
+
+typedef bool (*gpu_init_cb)(gpu* g);
+typedef void (*gpu_uninit_cb)(gpu* g);
+typedef bool (*gpu_lock_texture_cb)(gpu* g);
+typedef void (*gpu_render_cb)(gpu* g);
 
 #define X_RES 160
 #define Y_RES 144
@@ -44,9 +45,7 @@ typedef struct gpu_s gpu;
 
 #define WINDOW_SCALE 2
 
-int gpu_init(gpu *g);
-
-void gpu_uninit(gpu *g);
+int gpu_init(gpu *g, gpu_init_cb cb);
 
 void gpu_reset(gpu *g);
 
@@ -56,6 +55,6 @@ void gpu_debug_print(gpu *g, level l);
 #define gpu_debug_print(g, l) ;
 #endif
 
-int gpu_update(gpu *g, memory *mem, const uint8_t last_t);
+int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_lock_texture_cb l_cb);
 
 #endif

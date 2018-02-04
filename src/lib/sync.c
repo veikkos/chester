@@ -1,27 +1,25 @@
 #include "sync.h"
 
-#include <SDL2/SDL.h>
-
 #include "logger.h"
 
-void sync_init(sync_timer *s, unsigned int ticks)
+void sync_init(sync_timer *s, unsigned int ticks, get_ticks_cb cb)
 {
   s->timing_cumulative_ticks = 0;
   s->timing_ticks = ticks;
   #ifdef ENABLE_DEBUG
   s->timing_debug_ticks = 0;
   #endif
-  s->framestarttime = SDL_GetTicks();
+  s->framestarttime = cb();
   s->waittime = 1000.0f * s->timing_ticks / 4194304;
 }
 
-void sync(sync_timer *s, const unsigned int ticks)
+void sync_time(sync_timer *s, const unsigned int ticks, get_ticks_cb t_cb, delay_cb d_cb)
 {
   if (s->timing_cumulative_ticks > s->timing_ticks)
     {
-      int32_t delaytime = s->waittime - (SDL_GetTicks() - s->framestarttime);
+      int32_t delaytime = s->waittime - (t_cb() - s->framestarttime);
       if(delaytime > 0)
-        SDL_Delay((Uint32)delaytime);
+        d_cb(delaytime);
 
 #ifdef ENABLE_DEBUG
       if (++(s->timing_debug_ticks) > 10)
@@ -38,7 +36,7 @@ void sync(sync_timer *s, const unsigned int ticks)
           s->timing_debug_ticks = 0;
         }
 #endif
-      s->framestarttime = SDL_GetTicks();
+      s->framestarttime = t_cb();
 
       s->timing_cumulative_ticks = 0;
     }

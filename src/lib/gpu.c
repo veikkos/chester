@@ -4,73 +4,20 @@
 
 #include <stdbool.h>
 #include <string.h>
-// Only for 8*16 sprites
-#include <assert.h>
 
-int gpu_init(gpu *g)
+int gpu_init(gpu *g, gpu_init_cb cb)
 {
-  g->window = NULL;
-  g->renderer = NULL;
-  g->texture = NULL;
-  g->locked_pixel_data = false;
+  g->app_data = NULL;
+  g->locked_pixel_data = NULL;
 
-  SDL_Init(SDL_INIT_VIDEO);
-
-  g->window = SDL_CreateWindow("GBEmu",
-                               SDL_WINDOWPOS_UNDEFINED,
-                               SDL_WINDOWPOS_UNDEFINED,
-                               X_RES * WINDOW_SCALE, Y_RES * WINDOW_SCALE,
-                               SDL_WINDOW_OPENGL);
-
-  if (g->window == NULL)
+  if (!cb(g))
     {
-      gb_log(ERROR, "Could not create a window: %s",
-             SDL_GetError());
-      return 1;
-    }
-
-  g->renderer = SDL_CreateRenderer(g->window,
-                                   -1,
-                                   SDL_RENDERER_ACCELERATED);
-
-  if (g->renderer == NULL)
-    {
-      gb_log(ERROR, "Could not create a renderer: %s",
-             SDL_GetError());
-      return 1;
-    }
-
-  g->texture =
-    SDL_CreateTexture(g->renderer,
-                      SDL_GetWindowPixelFormat(g->window),
-                      SDL_TEXTUREACCESS_STREAMING,
-                      256, 256);
-
-  if (g->texture == NULL)
-    {
-      gb_log(ERROR, "Could not create a background texture: %s",
-             SDL_GetError());
-      return 1;
+      return 0;
     }
 
   gpu_reset(g);
 
-  return 0;
-}
-
-void gpu_uninit(gpu *g)
-{
-  if (g->locked_pixel_data)
-    {
-      SDL_UnlockTexture(g->texture);
-      g->locked_pixel_data = NULL;
-    }
-
-  SDL_DestroyRenderer(g->renderer);
-  SDL_DestroyWindow(g->window);
-  SDL_DestroyTexture(g->texture);
-
-  SDL_Quit();
+  return 1;
 }
 
 void gpu_reset(gpu *g)
@@ -131,6 +78,7 @@ void write_texture(uint8_t line,
                    (!row_data[tile_pos + bit_offset])))
                 {
                   memset(texture + final_offset, color, 4);
+                  texture[final_offset + 3] = 255;
                   if (row_data)
                     row_data[tile_pos + bit_offset] = (uint8_t)raw_color;
                 }
@@ -138,6 +86,7 @@ void write_texture(uint8_t line,
           else
             {
               memset(texture + final_offset, color, 4);
+              texture[final_offset + 3] = 255;
               if (row_data)
                 row_data[tile_pos + bit_offset] = (uint8_t)raw_color;
             }
@@ -260,17 +209,11 @@ static inline void process_sprite_attributes(memory *mem,
     }
 }
 
-void scanline(gpu *g, memory *mem, const uint8_t line)
+void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_texture_cb cb)
 {
-  int row_length;
-
   if (!g->locked_pixel_data)
     {
-      if (SDL_LockTexture(g->texture, NULL, &g->locked_pixel_data, &row_length))
-        {
-          gb_log(ERROR, "Could not lock the background texture: %s",
-                 SDL_GetError());
-        }
+      cb(g);
     }
 
   if (g->locked_pixel_data)
@@ -345,25 +288,6 @@ void scanline(gpu *g, memory *mem, const uint8_t line)
     }
 }
 
-void render(gpu *g)
-{
-  static SDL_Rect screen;
-  screen.x = 0;
-  screen.y = 0;
-  screen.w = X_RES;
-  screen.h = Y_RES;
-
-  if (g->locked_pixel_data)
-    {
-      SDL_UnlockTexture(g->texture);
-      g->locked_pixel_data = NULL;
-    }
-
-  SDL_RenderCopy(g->renderer,
-                 g->texture, &screen, NULL);
-  SDL_RenderPresent(g->renderer);
-}
-
 static state get_mode(memory *mem)
 {
   const uint8_t stat = mmu_read_byte(mem, MEM_LCD_STAT);
@@ -378,7 +302,7 @@ static void set_mode(memory *mem, const state mode)
   mem->io_registers[MEM_LCD_STAT & 0x00FF] = stat;
 }
 
-int gpu_update(gpu *g, memory *mem, const uint8_t last_t)
+int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_lock_texture_cb l_cb)
 {
   // Reset GPU state if LCD got disabled
   if (mem->lcd_stopped)
@@ -417,7 +341,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t)
         {
           g->clock.t = 0;
 
-          scanline(g, mem, line);
+          scanline(g, mem, line, l_cb);
 
           isr_set_lcdc_isr_if_enabled(mem, MEM_LCDC_HBLANK_ISR_ENABLED_FLAG);
 
@@ -467,7 +391,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t)
 
               isr_set_lcdc_isr_if_enabled(mem, MEM_LCDC_OAM_ISR_ENABLED_FLAG);
 
-              render(g);
+              r_cb(g);
 
               gb_log (VERBOSE, "GPU RENDER - OAM");
             }

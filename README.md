@@ -1,10 +1,10 @@
 # Chester - veikkos' Game Boy emulator
 
-Game Boy emulator written in C language with minimal dependencies.
+Game Boy emulator written in C language with minimal dependencies with portable library part.
 
 ## Important ##
 
-Chester is probably NOT suitable for playing games, as weird as it may sound. It is my attempt to learn emulator programming and is probably not accurate and stable enough for real gaming use.
+Chester is probably NOT suitable for actually playing games. It is my attempt to learn emulator programming and is probably not accurate and stable enough for real gaming use.
 
 ## What it does ##
 
@@ -16,7 +16,9 @@ Sounds, (very) accurate instruction and memory timing, (very) accurate timers, c
 
 ## Dependencies ##
 
-SDL2 - https://www.libsdl.org/
+Library part doesn't have external dependencies and is portable C code.
+
+Desktop application depends on SDL2 (https://www.libsdl.org/).
 
 ## Getting started ##
 
@@ -34,7 +36,7 @@ $ make release
 
 Run
 ```
-$ ./gbe path/to/rom.gb
+$ ./chester path/to/rom.gb
 ```
 
 Optionally bootloader can be used by providing "DMG_ROM.bin" in working directory.
@@ -43,6 +45,7 @@ Optionally bootloader can be used by providing "DMG_ROM.bin" in working director
 
 * Ubuntu 14.04 LTS
 * Windows 10 (MinGW)
+(* Android but example not yet(?) published)
 
 ## Thanks to ##
 

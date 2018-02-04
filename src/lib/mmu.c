@@ -240,14 +240,43 @@ void mmu_write_byte(memory *mem,
               break;
             case MEM_DMA_ADDR:
               {
-                int i;
-                uint16_t input_addr = (uint16_t)input << 8;
-                for(i=0; i<160; ++i)
+                const uint16_t input_addr = (uint16_t)input << 8;
+                uint8_t *input_ptr = NULL;
+
+                switch(input_addr & 0xF000)
                   {
-                    mem->oam[i] = mmu_read_byte(mem, input_addr++);
+                  case 0x0000:
+                  case 0x1000:
+                  case 0x2000:
+                  case 0x3000:
+                    input_ptr = &mem->rom.data[input_addr];
+                    break;
+                  case 0x4000:
+                  case 0x5000:
+                  case 0x6000:
+                  case 0x7000:
+                    input_ptr = &mem->rom.data[input_addr + mem->banks.rom.offset];
+                    break;
+                  case 0x8000:
+                  case 0x9000:
+                    input_ptr = &mem->video_ram[input_addr - 0x8000];
+                    break;
+                  case 0xA000:
+                  case 0xB000:
+                    input_ptr = &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
+                    break;
+                  case 0xC000:
+                  case 0xD000:
+                    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000];
+                    break;
+                  default:
+                    break;
                   }
+
+                assert(input_ptr);
+                memcpy(mem->oam, input_ptr, 160);
+                break;
               }
-              break;
             case MEM_TIMA_ADDR:
               mem->tima_modified = true;
               // Intentional fall through
