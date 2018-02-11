@@ -41,7 +41,7 @@ static inline unsigned int get_color(const unsigned int raw_color,
 }
 
 void write_texture(uint8_t line,
-                   uint8_t tile_pos,
+                   int16_t x,
                    uint16_t raw_tile_data,
                    uint8_t palette,
                    uint8_t *texture,
@@ -50,45 +50,56 @@ void write_texture(uint8_t line,
                    bool priority,
                    bool x_flip)
 {
-  const unsigned int per_line_offset = 256 * 4;
-  const unsigned int line_offset = per_line_offset * line;
-  const unsigned int output_pixel_base_offset =
-    line_offset + (tile_pos * 4);
   int i;
 
   for(i = 0; i < 8; ++i)
     {
-      const unsigned int raw_color_1 = (raw_tile_data & (0x0001 << i)) >> i;
-      const unsigned int raw_color_2 = (raw_tile_data & (0x0100 << i)) >> (i + 7);
-      const unsigned int raw_color = raw_color_1 + raw_color_2;
       const unsigned int bit_offset = x_flip ? i : (7 - i);
-      unsigned int final_offset = output_pixel_base_offset + bit_offset * 4;
+      int16_t x_position = x + bit_offset;
 
-      if (final_offset - line_offset >= per_line_offset)
-        final_offset -= per_line_offset;
-
-      unsigned int color = get_color(raw_color, palette);
-
-      if (final_offset < (255 * per_line_offset))
+      if (x_position < 0)
         {
+          x_position += 256;
+        }
+      else if (x_position >= 256)
+        {
+          x_position -= 256;
+        }
+
+      if (x_position < 160)
+        {
+          const unsigned int raw_color_1 = (raw_tile_data & (0x0001 << i)) >> i;
+          const unsigned int raw_color_2 = (raw_tile_data & (0x0100 << i)) >> (i + 7);
+          const unsigned int raw_color = raw_color_1 + raw_color_2;
+          const unsigned int color = get_color(raw_color, palette);
+
+          static const unsigned int per_line_offset = 256 * 4;
+          const unsigned int line_offset = per_line_offset * line;
+          const unsigned int output_pixel_offset =
+            line_offset + (x_position * 4);
+
           if (transparent)
             {
               if (raw_color &&
                   (priority ||
-                   (!row_data[tile_pos + bit_offset])))
+                   (!row_data[x_position])))
                 {
-                  memset(texture + final_offset, color, 4);
-                  texture[final_offset + 3] = 255;
+                  memset(texture + output_pixel_offset, color, 3);
+                  texture[output_pixel_offset + 3] = 255;
                   if (row_data)
-                    row_data[tile_pos + bit_offset] = (uint8_t)raw_color;
+                    {
+                      row_data[x_position] = (uint8_t)raw_color;
+                    }
                 }
             }
           else
             {
-              memset(texture + final_offset, color, 4);
-              texture[final_offset + 3] = 255;
+              memset(texture + output_pixel_offset, color, 3);
+              texture[output_pixel_offset + 3] = 255;
               if (row_data)
-                row_data[tile_pos + bit_offset] = (uint8_t)raw_color;
+                {
+                  row_data[x_position] = (uint8_t)raw_color;
+                }
             }
         }
     }
@@ -219,7 +230,8 @@ void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_texture_cb cb)
   if (g->locked_pixel_data)
     {
       const uint8_t lcdc = mmu_read_byte(mem, MEM_LCDC_ADDR);
-      uint8_t row[256];
+      uint8_t row[160];
+      memset(row, 0, sizeof(row));
 
       if (lcdc & MEM_LCDC_BG_WINDOW_ENABLED_FLAG)
         {
