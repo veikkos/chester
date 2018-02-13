@@ -44,6 +44,8 @@ void register_gpu_lock_texture_callback(chester *chester, gpu_lock_texture_cb cb
 
 void register_gpu_render_callback(chester *chester, gpu_render_cb cb);
 
+void save_if_needed(chester *chester);
+
 bool init(chester *chester, const char* rom, const char* save_path, const char* bootloader);
 
 void uninit(chester *chester);

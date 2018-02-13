@@ -35,6 +35,7 @@ void mmu_reset(memory *mem)
 
   mem->banks.ram.selected = 0;
   mem->banks.ram.enabled = true;
+  mem->banks.ram.written = false;
   memset(mem->banks.ram.data, 0, sizeof mem->banks.ram.data);
 
   mem->tima_modified = false;

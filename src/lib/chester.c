@@ -130,10 +130,7 @@ void register_gpu_render_callback(chester *chester, gpu_render_cb cb)
 
 void uninit(chester *chester)
 {
-  if (chester->save_supported && chester->mem.banks.ram.written)
-    {
-      save_game(chester->save_game_file, &chester->mem);
-    }
+  save_if_needed(chester);
 
   free(chester->bootloader);
 
@@ -142,6 +139,16 @@ void uninit(chester *chester)
   chester->gpu_uninit_cb(&chester->g);
 
   gb_log_close_file();
+}
+
+void save_if_needed(chester *chester)
+{
+    if (chester->save_supported && chester->mem.banks.ram.written)
+      {
+        chester->mem.banks.ram.written = false;
+
+        save_game(chester->save_game_file, &chester->mem);
+      }
 }
 
 int run(chester *chester)
