@@ -45,7 +45,6 @@ struct registers_s {
     uint16_t m, t;
   } clock;
   bool halt, stop;
-  uint8_t halt_mask;
   struct {
     unsigned int tick, div, t_timer;
   } timer;

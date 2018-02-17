@@ -123,7 +123,6 @@ static inline void nop(registers *reg)
 static inline void halt(registers *reg, memory *mem)
 {
   reg->halt = true;
-  reg->halt_mask = ~mmu_read_byte(mem, MEM_IF_ADDR);
 
   reg->clock.last.t = 4;
 }

@@ -21,8 +21,6 @@ void cpu_reset(registers *reg)
   reg->halt = false;
   reg->stop = false;
 
-  reg->halt_mask = 0xFF;
-
   reg->timer.tick = 0;
   reg->timer.div = 0;
 }
@@ -55,12 +53,10 @@ static inline void check_halt_release(registers *reg, memory *mem)
 {
   uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
   if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
-  if_flags &= reg->halt_mask;
 
   if (if_flags)
     {
       reg->halt = false;
-      reg->halt_mask = 0xFF;
     }
 }
 
