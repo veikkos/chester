@@ -1,13 +1,34 @@
-language: c
-
-script:
-  - make
-  - make release
-  - make clean
-
-before_install:
-  - sudo apt-get install -y  libsdl2-dev --no-install-suggests --no-install-recommends
-
-compiler:
-  - clang
-  - gcc
+matrix:
+  include:
+    - language: c
+      before_script:
+        - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
+      script:
+        - make
+        - make release
+        - make clean
+      compiler: clang
+    - language: c
+      before_script:
+        - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
+      script:
+        - make
+        - make release
+        - make clean
+      compiler: gcc
+    - language: android
+      jdk: oraclejdk8
+      android:
+        components:
+          - tools
+          - android-26
+          - build-tools-26.1.1
+      install:
+        - echo y | sdkmanager "ndk-bundle"
+      before_script:
+        - export ANDROID_NDK_HOME=$ANDROID_HOME/ndk-bundle
+        - cd android/ChesterApp
+        - chmod +x ./gradlew
+        - yes | sdkmanager "platforms;android-27"
+      script:
+        - ./gradlew build
