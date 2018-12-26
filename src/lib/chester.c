@@ -13,7 +13,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef WIN32
+#include <windows.h>
+#else
 #include <libgen.h>
+#endif
 
 bool init(chester *chester, const char* rom, const char* save_path, const char* bootloader)
 {
@@ -69,7 +73,12 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
   if (chester->save_supported)
     {
       char* base_name_cpy = strdup(rom);
+#ifdef WIN32
+      char base_name[64];
+      _splitpath(base_name_cpy, NULL, NULL, base_name, NULL);
+#else
       char* base_name = basename(base_name_cpy);
+#endif
 
       const char extension[] = ".sav";
       const size_t save_file_path_length = strlen(base_name) + strlen(extension) + 1 +

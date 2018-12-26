@@ -1,6 +1,6 @@
 #include "chester.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 #include <signal.h>
 
@@ -9,10 +9,12 @@
 
 bool done = false;
 
+#ifndef WIN32
 void sig_handler(int signum __attribute__((unused)))
 {
   done = true;
 }
+#endif
 
 struct sdl_graphics_s {
   SDL_Window *window;
@@ -256,8 +258,10 @@ int main(int argc, char **argv)
       return 2;
     }
 
+#ifndef WIN32
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);
+#endif
 
   while (!done)
     {
