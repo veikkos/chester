@@ -4,17 +4,17 @@ matrix:
       before_script:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
+        - mkdir build && cd build
+        - cmake ..
         - make
-        - make release
-        - make clean
       compiler: clang
     - language: c
       before_script:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
+        - mkdir build && cd build
+        - cmake ..
         - make
-        - make release
-        - make clean
       compiler: gcc
     - language: android
       jdk: oraclejdk8
