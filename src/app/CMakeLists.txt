@@ -1,5 +1,9 @@
 add_executable(chester main.c)
 
+if (NOT MSVC)
+    set_target_properties(chester PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+endif()
+
 set(CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR}/cmake-modules)
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/cmake-modules/FindSDL2.cmake")

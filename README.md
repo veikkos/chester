@@ -44,7 +44,7 @@ $ make
 
 Run
 ```
-$ ./chester path/to/rom.gb
+$ ./bin/chester path/to/rom.gb
 ```
 
 Optionally bootloader can be used by providing "DMG_ROM.bin" in working directory.
