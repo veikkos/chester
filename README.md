@@ -25,9 +25,9 @@ Desktop application depends on SDL2 (https://www.libsdl.org/).
 
 ## Getting started ##
 
-### Debian based OS ###
+### Debian-like systems ###
 
-Make sure you have C compiler installed. Emulator is tested with, and defaults to, GCC but also compiles with clang.
+Make sure you have C compiler installed. Emulator has been tested with GCC and clang.
 
 Install SDL2
 ```
@@ -36,7 +36,10 @@ $ sudo apt-get install libsdl2-dev
 
 Build
 ```
-$ make release
+$ mkdir build
+$ cd build
+$ cmake ..
+$ make
 ```
 
 Run
@@ -56,6 +59,15 @@ Optionally bootloader can be used by providing "DMG_ROM.bin" in working director
 | Start    | N          |
 | Select   | M          |
 
+### Visual Studio ###
+
+SDL2 library can be downloaded from https://www.libsdl.org/.
+
+For Windows you might need to specify SDL2 library path explicitly, e.g.
+```
+$ cmake -G "Visual Studio 15 2017 Win64" -DSDL2_PATH="C:\\<path>\\SDL2-2.0.9" ..
+```
+
 ### Android ###
 
 Needs Android SDK and NDK.
@@ -68,7 +80,7 @@ $ ./gradlew build
 ## Tested platforms ##
 
 * Ubuntu 14.04 LTS
-* Windows 10 (MinGW)
+* Windows 10
 * Android
 
 ## Thanks to ##
