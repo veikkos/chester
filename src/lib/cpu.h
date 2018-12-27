@@ -54,7 +54,7 @@ typedef struct registers_s registers;
 
 void cpu_reset(registers *reg);
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void cpu_debug_print(registers *reg, level l);
 #else
 #define cpu_debug_print(r, l) ;

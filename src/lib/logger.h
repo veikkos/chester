@@ -23,7 +23,7 @@ typedef level_e level;
 
 //#define LOG_FILE
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void gb_log(const level l, const char *fmt, ...);
 
 void gb_log_stream(const level l, const char c);

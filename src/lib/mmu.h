@@ -115,7 +115,7 @@ typedef struct memory_s memory;
 
 void mmu_reset(memory *mem);
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void mmu_debug_print(memory *mem, level l);
 #else
 #define mmu_debug_print(r, l) ;

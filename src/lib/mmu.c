@@ -64,7 +64,7 @@ void mmu_reset(memory *mem)
   mmu_write_byte(mem, 0xFF49, 0xFF);
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void mmu_debug_print(memory *mem, level l)
 {
   gb_log(l, "Memory info");

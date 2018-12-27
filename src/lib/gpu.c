@@ -25,7 +25,7 @@ void gpu_reset(gpu *g)
   g->clock.t = 0;
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void gpu_debug_print(gpu *g, level l)
 {
   gb_log(l, "GPU info");

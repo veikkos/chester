@@ -25,7 +25,7 @@ void cpu_reset(registers *reg)
   reg->timer.div = 0;
 }
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void cpu_debug_print(registers *reg, level l)
 {
   gb_log(l, "CPU info");

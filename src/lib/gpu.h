@@ -49,7 +49,7 @@ int gpu_init(gpu *g, gpu_init_cb cb);
 
 void gpu_reset(gpu *g);
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void gpu_debug_print(gpu *g, level l);
 #else
 #define gpu_debug_print(g, l) ;

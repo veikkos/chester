@@ -6,9 +6,9 @@ void sync_init(sync_timer *s, unsigned int ticks, get_ticks_cb cb)
 {
   s->timing_cumulative_ticks = 0;
   s->timing_ticks = ticks;
-  #ifdef ENABLE_DEBUG
+#ifndef NDEBUG
   s->timing_debug_ticks = 0;
-  #endif
+#endif
   s->framestarttime = cb();
   s->waittime = 1000.0f * s->timing_ticks / 4194304;
 }
@@ -21,7 +21,7 @@ void sync_time(sync_timer *s, const unsigned int ticks, get_ticks_cb t_cb, delay
       if(delaytime > 0)
         d_cb(delaytime);
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
       if (++(s->timing_debug_ticks) > 10)
         {
           if (delaytime < 0)

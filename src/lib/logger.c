@@ -6,7 +6,7 @@
 FILE *f = NULL;
 #endif
 
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
 void gb_log(const level l, const char *fmt, ...)
 {
   if (l <= ERROR_LEVEL)

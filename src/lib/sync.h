@@ -12,7 +12,7 @@ typedef struct sync_timer_s
   int timing_ticks;
   unsigned int framestarttime;
   unsigned int waittime;
-#ifdef ENABLE_DEBUG
+#ifndef NDEBUG
   unsigned int timing_debug_ticks;
 #endif
 } sync_timer;
