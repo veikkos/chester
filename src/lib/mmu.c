@@ -18,6 +18,7 @@ void mmu_reset(memory *mem)
   memset(mem->internal_8k_ram, 0, sizeof mem->internal_8k_ram);
   memset(mem->oam, 0, sizeof mem->oam);
   memset(mem->video_ram, 0, sizeof mem->video_ram);
+  memset(mem->palette, 0, sizeof mem->palette);
 
   mem->rom.data = NULL;
   mem->rom.type = NONE;
@@ -59,9 +60,10 @@ void mmu_reset(memory *mem)
   mmu_write_byte(mem, 0xFF26, 0xF1);
   mem->io_registers[MEM_LCD_STAT & 0x00FF] = 0x85;
   mmu_write_byte(mem, MEM_LCDC_ADDR, 0x91);
-  mmu_write_byte(mem, 0xFF47, 0xFC);
-  mmu_write_byte(mem, 0xFF48, 0xFF);
-  mmu_write_byte(mem, 0xFF49, 0xFF);
+  mmu_write_byte(mem, MEM_BGP_ADDR, 0xFC);
+  mmu_write_byte(mem, MEM_OBP0_ADDR, 0xFF);
+  mmu_write_byte(mem, MEM_OBP1_ADDR, 0xFF);
+  mmu_write_byte(mem, MEM_SVBK_ADDR, 0x01);
 }
 
 #ifndef NDEBUG
@@ -109,6 +111,17 @@ static inline void mmu_select_rom_bank(memory *mem, const uint8_t bank)
   mem->banks.rom.offset = 0x4000 * (mem->banks.rom.selected - 1);
 
   gb_log(VERBOSE, "Selected ROM bank %d", mem->banks.rom.selected);
+}
+
+static inline uint8_t get_video_ram_bank(memory* mem)
+{
+  return mem->high_empty[MEM_VBK_ADDR - 0xFF4C];
+}
+
+static inline uint16_t get_internal_bank_offset(memory* mem)
+{
+  const uint8_t bank = mem->high_empty[MEM_SVBK_ADDR - 0xFF4C];
+  return (bank - 1) * 4096;
 }
 
 void mmu_write_byte(memory *mem,
@@ -170,8 +183,11 @@ void mmu_write_byte(memory *mem,
       break;
     case 0x8000:
     case 0x9000:
-      mem->video_ram[address - 0x8000] = input;
-      break;
+      {
+        const uint8_t bank = get_video_ram_bank(mem);
+        mem->video_ram[bank][address - 0x8000] = input;
+        break;
+      }
     case 0xA000:
     case 0xB000:
       if (!mem->banks.ram.enabled)
@@ -186,13 +202,26 @@ void mmu_write_byte(memory *mem,
         }
       break;
     case 0xC000:
-    case 0xD000:
+      // Fixed first 4k of internal RAM
       mem->internal_8k_ram[address - 0xC000] = input;
       break;
+    case 0xE000:
+      // Echo of above
+      mem->internal_8k_ram[address - 0xE000] = input;
+      break;
+    case 0xD000:
+      {
+        // Switchable second half of internal RAM
+        const uint16_t offset = get_internal_bank_offset(mem);
+        mem->internal_8k_ram[address - 0xC000 + offset] = input;
+        break;
+      }
     default:
       if (address < 0xFE00)
         {
-          mem->internal_8k_ram[address - 0xE000] = input;
+          // Echo of above switchable RAM
+          const uint16_t offset = get_internal_bank_offset(mem);
+          mem->internal_8k_ram[address - 0xE000 + offset] = input;
         }
       else if (address < 0xFEA0)
         {
@@ -260,7 +289,7 @@ void mmu_write_byte(memory *mem,
                     break;
                   case 0x8000:
                   case 0x9000:
-                    input_ptr = &mem->video_ram[input_addr - 0x8000];
+                    input_ptr = &mem->video_ram[get_video_ram_bank(mem)][input_addr - 0x8000];
                     break;
                   case 0xA000:
                   case 0xB000:
@@ -288,11 +317,39 @@ void mmu_write_byte(memory *mem,
         }
       else if (address < 0xFF80)
         {
-          // Special register stops bootloader
-          if (mem->bootloader_running && address == 0xFF50 && input == 0x01)
-              mem->bootloader_running = false;
-          else
-            mem->high_empty[address - 0xFF4C] = input;
+          switch (address)
+            {
+            case MEM_SVBK_ADDR:
+              {
+                uint8_t bank = input & 0x03;
+                if (!bank)
+                  bank = 1;
+
+                mem->high_empty[MEM_SVBK_ADDR - 0xFF4C] = bank;
+                break;
+              }
+            case MEM_VBK_ADDR:
+              {
+                mem->high_empty[MEM_VBK_ADDR - 0xFF4C] = input & 0x01;
+                break;
+              }
+            case MEM_BCPD_BGPD:
+              {
+                uint8_t* bcps_bgpi = &mem->io_registers[MEM_BCPS_BGPI & 0x00FF];
+                const uint8_t index = *bcps_bgpi & 0x3F;
+                mem->palette[MEM_BG_PALETTE_INDEX][index] = input;
+                if (*bcps_bgpi & MEM_BCPS_BGPI_INCREMENT_FLAG)
+                  (*bcps_bgpi)++;
+                break;
+              }
+            default:
+              // Special register stops bootloader
+              if (mem->bootloader_running && address == 0xFF50 && input == 0x01)
+                mem->bootloader_running = false;
+              else
+                mem->high_empty[address - 0xFF4C] = input;
+              break;
+            }
         }
       else if (address < 0xFFFF)
         {
@@ -323,7 +380,10 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
       return mem->rom.data[address + mem->banks.rom.offset];
     case 0x8000:
     case 0x9000:
-      return mem->video_ram[address - 0x8000];
+      {
+        const uint8_t bank = get_video_ram_bank(mem);
+        return mem->video_ram[bank][address - 0x8000];
+      }
     case 0xA000:
     case 0xB000:
       if (!mem->banks.ram.enabled)
@@ -336,12 +396,23 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
         }
       break;
     case 0xC000:
-    case 0xD000:
+      // Fixed first 4k of internal RAM
       return mem->internal_8k_ram[address - 0xC000];
+    case 0xE000:
+      // Echo of above
+      return mem->internal_8k_ram[address - 0xE000];
+    case 0xD000:
+      {
+        // Switchable second half of internal RAM
+        const uint16_t offset = get_internal_bank_offset(mem);
+        return mem->internal_8k_ram[address - 0xC000 + offset];
+      }
     default:
       if (address < 0xFE00)
         {
-          return mem->internal_8k_ram[address - 0xE000];
+          // Echo of above switchable RAM
+          const uint16_t offset = get_internal_bank_offset(mem);
+          return mem->internal_8k_ram[address - 0xE000 + offset];
         }
       else if (address < 0xFEA0)
         {
@@ -391,6 +462,6 @@ uint16_t mmu_read_word(memory *mem, const uint16_t address)
 
 void mmu_write_word(memory *mem, const uint16_t address, const uint16_t word)
 {
-  mmu_write_byte(mem, address, word);
+  mmu_write_byte(mem, address, (const uint8_t)word);
   mmu_write_byte(mem, address + 1, word >> 8);
 }

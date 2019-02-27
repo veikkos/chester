@@ -1,4 +1,4 @@
-#ifndef MMU_H
+﻿#ifndef MMU_H
 #define MMU_H
 
 #include "keys.h"
@@ -25,9 +25,10 @@ struct memory_s {
   uint8_t high_empty[52];
   uint8_t io_registers[76];
   uint8_t low_empty[96];
-  uint8_t internal_8k_ram[8192];
+  uint8_t internal_8k_ram[8192 + 6 * 4096];
   uint8_t oam[160];
-  uint8_t video_ram[8192];
+  uint8_t video_ram[2][8192];
+  uint8_t palette[2][64];
   struct {
     uint8_t *data;
     mbc type;
@@ -88,6 +89,12 @@ typedef struct memory_s memory;
 #define MEM_OBP1_ADDR 0xFF49
 #define MEM_WY_ADDR 0xFF4A
 #define MEM_WX_ADDR 0xFF4B
+#define MEM_VBK_ADDR 0xFF4F
+#define MEM_BCPS_BGPI 0xFF68
+#define MEM_BCPD_BGPD 0xFF69
+#define MEM_OCPS_OBPI 0xFF6A
+#define MEM_OCPD_OBPD_ADDR 0xFF6B
+#define MEM_SVBK_ADDR 0xFF70
 #define MEM_IE_ADDR 0xFFFF
 
 #define MEM_IF_PIN_FLAG 0x10
@@ -110,6 +117,11 @@ typedef struct memory_s memory;
 #define MEM_LCDC_VBLANK_ISR_ENABLED_FLAG 0x10
 #define MEM_LCDC_HBLANK_ISR_ENABLED_FLAG 0x08
 #define MEM_LCDC_LYC_LY_COINCIDENCE_FLAG 0x04
+
+#define MEM_BCPS_BGPI_INCREMENT_FLAG 0x08
+
+#define MEM_BG_PALETTE_INDEX 0
+#define MEM_SPRITE_PALETTE_INDEX 1
 
 #define MEM_TAC_START 0x04
 
