@@ -6,7 +6,11 @@ void cpu_reset(registers *reg)
   reg->pc = 0x0100;
   reg->sp = 0xFFFE;
 
+#ifdef EXPERIMENTAL_CGB
   reg->af = 0x11B0;
+#else
+  reg->af = 0x01B0;
+#endif
   reg->bc = 0x0013;
   reg->de = 0x00D8;
   reg->hl = 0x014D;

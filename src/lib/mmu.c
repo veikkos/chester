@@ -115,12 +115,12 @@ static inline void mmu_select_rom_bank(memory *mem, const uint8_t bank)
 
 static inline uint8_t get_video_ram_bank(memory* mem)
 {
-  return mem->high_empty[MEM_VBK_ADDR - 0xFF4C];
+  return mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR];
 }
 
 static inline uint16_t get_internal_bank_offset(memory* mem)
 {
-  const uint8_t bank = mem->high_empty[MEM_SVBK_ADDR - 0xFF4C];
+  const uint8_t bank = mem->high_empty[MEM_SVBK_ADDR - MEM_HIGH_EMPTY_START_ADDR];
   return (bank - 1) * 4096;
 }
 
@@ -231,7 +231,7 @@ void mmu_write_byte(memory *mem,
         {
           mem->low_empty[address - 0xFEA0] = input;
         }
-      else if (address < 0xFF4C)
+      else if (address < MEM_HIGH_EMPTY_START_ADDR)
         {
           switch(address)
             {
@@ -296,8 +296,10 @@ void mmu_write_byte(memory *mem,
                     input_ptr = &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
                     break;
                   case 0xC000:
-                  case 0xD000:
                     input_ptr = &mem->internal_8k_ram[input_addr - 0xC000];
+                    break;
+                  case 0xD000:
+                    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000 + get_internal_bank_offset(mem)];
                     break;
                   default:
                     break;
@@ -325,17 +327,15 @@ void mmu_write_byte(memory *mem,
                 if (!bank)
                   bank = 1;
 
-                mem->high_empty[MEM_SVBK_ADDR - 0xFF4C] = bank;
+                mem->high_empty[MEM_SVBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = bank;
                 break;
               }
             case MEM_VBK_ADDR:
-              {
-                mem->high_empty[MEM_VBK_ADDR - 0xFF4C] = input & 0x01;
-                break;
-              }
+              mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & 0x01;
+              break;
             case MEM_BCPD_BGPD:
               {
-                uint8_t* bcps_bgpi = &mem->io_registers[MEM_BCPS_BGPI & 0x00FF];
+                uint8_t* bcps_bgpi = &mem->high_empty[MEM_BCPS_BGPI - MEM_HIGH_EMPTY_START_ADDR];
                 const uint8_t index = *bcps_bgpi & 0x3F;
                 mem->palette[MEM_BG_PALETTE_INDEX][index] = input;
                 if (*bcps_bgpi & MEM_BCPS_BGPI_INCREMENT_FLAG)
@@ -347,7 +347,7 @@ void mmu_write_byte(memory *mem,
               if (mem->bootloader_running && address == 0xFF50 && input == 0x01)
                 mem->bootloader_running = false;
               else
-                mem->high_empty[address - 0xFF4C] = input;
+                mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
               break;
             }
         }
@@ -431,13 +431,13 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
 
           return key_out;
         }
-      else if (address < 0xFF4C)
+      else if (address < MEM_HIGH_EMPTY_START_ADDR)
         {
           return mem->io_registers[address - 0xFF00];
         }
       else if (address < 0xFF80)
         {
-          return mem->high_empty[address - 0xFF4C];
+          return mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR];
         }
       else if (address < 0xFFFF)
         {
