@@ -16,6 +16,22 @@ matrix:
         - cmake ..
         - make
       compiler: gcc
+    - language: c
+      before_script:
+        - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
+      script:
+        - mkdir build && cd build
+        - cmake -DEXPERIMENTAL_CGB=ON ..
+        - make
+      compiler: clang
+    - language: c
+      before_script:
+        - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
+      script:
+        - mkdir build && cd build
+        - cmake -DEXPERIMENTAL_CGB=ON ..
+        - make
+      compiler: gcc
     - language: android
       jdk: oraclejdk8
       android:

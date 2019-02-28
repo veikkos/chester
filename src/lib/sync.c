@@ -10,7 +10,7 @@ void sync_init(sync_timer *s, unsigned int ticks, get_ticks_cb cb)
   s->timing_debug_ticks = 0;
 #endif
   s->framestarttime = cb();
-  s->waittime = 1000.0f * s->timing_ticks / 4194304;
+  s->waittime = (unsigned int)(1000.0f * s->timing_ticks / 4194304);
 }
 
 void sync_time(sync_timer *s, const unsigned int ticks, get_ticks_cb t_cb, delay_cb d_cb)

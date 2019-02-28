@@ -702,7 +702,7 @@ static inline void daa(registers *reg)
   if (a == 0)
     reg->f |= Z_BIT;
 
-  reg->a = a;
+  reg->a = (uint8_t)a;
 
   reg->clock.last.t = 4;
 }

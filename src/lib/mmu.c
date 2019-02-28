@@ -18,7 +18,9 @@ void mmu_reset(memory *mem)
   memset(mem->internal_8k_ram, 0, sizeof mem->internal_8k_ram);
   memset(mem->oam, 0, sizeof mem->oam);
   memset(mem->video_ram, 0, sizeof mem->video_ram);
+#if EXPERIMENTAL_CGB
   memset(mem->palette, 0, sizeof mem->palette);
+#endif
 
   mem->rom.data = NULL;
   mem->rom.type = NONE;
@@ -63,7 +65,9 @@ void mmu_reset(memory *mem)
   mmu_write_byte(mem, MEM_BGP_ADDR, 0xFC);
   mmu_write_byte(mem, MEM_OBP0_ADDR, 0xFF);
   mmu_write_byte(mem, MEM_OBP1_ADDR, 0xFF);
+#if EXPERIMENTAL_CGB
   mmu_write_byte(mem, MEM_SVBK_ADDR, 0x01);
+#endif
 }
 
 #ifndef NDEBUG
@@ -113,6 +117,7 @@ static inline void mmu_select_rom_bank(memory *mem, const uint8_t bank)
   gb_log(VERBOSE, "Selected ROM bank %d", mem->banks.rom.selected);
 }
 
+#if EXPERIMENTAL_CGB
 static inline uint8_t get_video_ram_bank(memory* mem)
 {
   return mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR];
@@ -123,6 +128,7 @@ static inline uint16_t get_internal_bank_offset(memory* mem)
   const uint8_t bank = mem->high_empty[MEM_SVBK_ADDR - MEM_HIGH_EMPTY_START_ADDR];
   return (bank - 1) * 4096;
 }
+#endif
 
 void mmu_write_byte(memory *mem,
                     const uint16_t address,
@@ -184,8 +190,12 @@ void mmu_write_byte(memory *mem,
     case 0x8000:
     case 0x9000:
       {
+#ifdef EXPERIMENTAL_CGB
         const uint8_t bank = get_video_ram_bank(mem);
         mem->video_ram[bank][address - 0x8000] = input;
+#else
+        mem->video_ram[address - 0x8000] = input;
+#endif
         break;
       }
     case 0xA000:
@@ -202,9 +212,13 @@ void mmu_write_byte(memory *mem,
         }
       break;
     case 0xC000:
-      // Fixed first 4k of internal RAM
+#ifndef EXPERIMENTAL_CGB
+    case 0xD000:
+#endif
+      // Fixed first 4k of internal RAM on CGB
       mem->internal_8k_ram[address - 0xC000] = input;
       break;
+#ifdef EXPERIMENTAL_CGB
     case 0xE000:
       // Echo of above
       mem->internal_8k_ram[address - 0xE000] = input;
@@ -216,12 +230,17 @@ void mmu_write_byte(memory *mem,
         mem->internal_8k_ram[address - 0xC000 + offset] = input;
         break;
       }
+#endif
     default:
       if (address < 0xFE00)
         {
+#ifdef EXPERIMENTAL_CGB
           // Echo of above switchable RAM
           const uint16_t offset = get_internal_bank_offset(mem);
           mem->internal_8k_ram[address - 0xE000 + offset] = input;
+#else
+          mem->internal_8k_ram[address - 0xE000] = input;
+#endif
         }
       else if (address < 0xFEA0)
         {
@@ -289,18 +308,28 @@ void mmu_write_byte(memory *mem,
                     break;
                   case 0x8000:
                   case 0x9000:
-                    input_ptr = &mem->video_ram[get_video_ram_bank(mem)][input_addr - 0x8000];
+                    input_ptr = &mem->video_ram
+#ifdef EXPERIMENTAL_CGB
+                        [get_video_ram_bank(mem)]
+#endif
+                        [input_addr - 0x8000];
                     break;
                   case 0xA000:
                   case 0xB000:
                     input_ptr = &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
                     break;
                   case 0xC000:
+#ifndef EXPERIMENTAL_CGB
+                  case 0xD000:
+#endif
                     input_ptr = &mem->internal_8k_ram[input_addr - 0xC000];
                     break;
+#ifdef EXPERIMENTAL_CGB
                   case 0xD000:
+
                     input_ptr = &mem->internal_8k_ram[input_addr - 0xC000 + get_internal_bank_offset(mem)];
                     break;
+#endif
                   default:
                     break;
                   }
@@ -319,6 +348,7 @@ void mmu_write_byte(memory *mem,
         }
       else if (address < 0xFF80)
         {
+#ifdef EXPERIMENTAL_CGB
           switch (address)
             {
             case MEM_SVBK_ADDR:
@@ -343,13 +373,16 @@ void mmu_write_byte(memory *mem,
                 break;
               }
             default:
+#endif
               // Special register stops bootloader
               if (mem->bootloader_running && address == 0xFF50 && input == 0x01)
                 mem->bootloader_running = false;
               else
                 mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
+#ifdef EXPERIMENTAL_CGB
               break;
             }
+#endif
         }
       else if (address < 0xFFFF)
         {
@@ -381,8 +414,12 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
     case 0x8000:
     case 0x9000:
       {
+#ifdef EXPERIMENTAL_CGB
         const uint8_t bank = get_video_ram_bank(mem);
         return mem->video_ram[bank][address - 0x8000];
+#else
+        return mem->video_ram[address - 0x8000];
+#endif
       }
     case 0xA000:
     case 0xB000:
@@ -396,8 +433,12 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
         }
       break;
     case 0xC000:
+#ifndef EXPERIMENTAL_CGB
+    case 0xD000:
+#endif
       // Fixed first 4k of internal RAM
       return mem->internal_8k_ram[address - 0xC000];
+#ifdef EXPERIMENTAL_CGB
     case 0xE000:
       // Echo of above
       return mem->internal_8k_ram[address - 0xE000];
@@ -407,12 +448,19 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
         const uint16_t offset = get_internal_bank_offset(mem);
         return mem->internal_8k_ram[address - 0xC000 + offset];
       }
+#endif
     default:
       if (address < 0xFE00)
         {
-          // Echo of above switchable RAM
+          // Echo of above switchable (on CGB) RAM
+#ifdef EXPERIMENTAL_CGB
           const uint16_t offset = get_internal_bank_offset(mem);
-          return mem->internal_8k_ram[address - 0xE000 + offset];
+#endif
+          return mem->internal_8k_ram[address - 0xE000
+#ifdef EXPERIMENTAL_CGB
+              + offset
+#endif
+          ];
         }
       else if (address < 0xFEA0)
         {

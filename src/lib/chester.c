@@ -51,6 +51,19 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
   mmu_reset(&chester->mem);
   mmu_set_rom(&chester->mem, chester->rom, get_type(chester->rom), rom_size);
 
+#ifdef EXPERIMENTAL_CGB
+  switch (chester->rom[0x0143])
+  {
+  case 0x80:
+  case 0xC0:
+    chester->mem.cgb_mode = true;
+    break;
+  default:
+    chester->mem.cgb_mode = false;
+    break;
+  }
+#endif
+
   chester->bootloader = read_file(bootloader, NULL, false);
 
   if (chester->bootloader)
