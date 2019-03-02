@@ -49,7 +49,15 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
     }
 
   mmu_reset(&chester->mem);
-  mmu_set_rom(&chester->mem, chester->rom, get_type(chester->rom), rom_size);
+
+  const mbc type = get_type(chester->rom);
+
+  if (type == NOT_SUPPORTED)
+    {
+      return false;
+    }
+
+  mmu_set_rom(&chester->mem, chester->rom, type, rom_size);
 
 #ifdef EXPERIMENTAL_CGB
   switch (chester->rom[0x0143])

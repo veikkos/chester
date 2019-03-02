@@ -108,7 +108,7 @@ void mmu_set_keys(memory *mem, keys *k)
   mem->k = k;
 }
 
-static inline void mmu_select_rom_bank(memory *mem, const uint8_t bank)
+static inline void mmu_select_rom_bank(memory *mem, const uint16_t bank)
 {
   mem->banks.rom.selected = bank;
   mem->banks.rom.selected &= mem->banks.rom.blocks - 1;
@@ -140,14 +140,23 @@ void mmu_write_byte(memory *mem,
     case 0x1000:
       break;
     case 0x2000:
+      if ((mem->rom.type & MBC_TYPE_MASK) == MBC5)
+        {
+          mmu_select_rom_bank(mem, (uint16_t)input);
+          break;
+        }
+      // Intentional fall through
     case 0x3000:
       {
-        uint8_t val;
+        uint16_t val;
         switch(mem->rom.type & MBC_TYPE_MASK)
           {
           case MBC3:
             val = input & 0x7F;
             if (!val) ++val;
+            break;
+          case MBC5:
+            val = mem->banks.rom.selected + ((input & 0x01) << 8);
             break;
           default:
             val = input & 0x1F;
@@ -161,28 +170,34 @@ void mmu_write_byte(memory *mem,
       break;
     case 0x4000:
     case 0x5000:
-      if (mem->banks.mode)
-        {
-          mem->banks.ram.selected = input & 0x03;
-          gb_log(VERBOSE, "Selected RAM bank %d", mem->banks.ram.selected);
-        }
-      else
-        {
-          uint8_t val = (input & 0x03) << 5 | (mem->banks.rom.selected & 0x1F);
+      {
+        if (mem->banks.mode)
+          {
+            const uint8_t mask = (mem->rom.type & MBC_TYPE_MASK) == MBC5 ? 0x0F : 0x03;
+            mem->banks.ram.selected = input & mask;
+            gb_log(VERBOSE, "Selected RAM bank %d", mem->banks.ram.selected);
+          }
+        else
+          {
+            uint8_t val = (input & 0x03) << 5 | (mem->banks.rom.selected & 0x1F);
 
-          switch(mem->rom.type & MBC_TYPE_MASK)
-            {
-            case MBC3:
-              if (!val) ++val;
-              break;
-            default:
-              if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
-              break;
-            }
+            switch(mem->rom.type & MBC_TYPE_MASK)
+              {
+              case MBC3:
+                if (!val) ++val;
+                break;
+              case MBC5:
+                gb_log(ERROR, "Should not set ROM bank here for MBC5");
+                return;
+              default:
+                if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
+                break;
+              }
 
-          mmu_select_rom_bank(mem, val);
-        }
-      break;
+            mmu_select_rom_bank(mem, val);
+          }
+        break;
+      }
     case 0x6000:
     case 0x7000:
       mem->banks.mode = input & 0x01;

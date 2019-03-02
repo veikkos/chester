@@ -47,7 +47,7 @@ uint8_t* read_file(const char* path, uint32_t *size, const bool is_rom)
           return NULL;
         }
 
-      if (size) *size = read_size;
+      if (size) *size = (uint32_t)read_size;
       fclose (file);
     }
 
@@ -86,10 +86,14 @@ mbc get_type(uint8_t* rom)
     case 0x17: // MBC4+RAM+BATTERY
     case 0x19: // MBC5
     case 0x1A: // MBC5+RAM
+      return MBC5;
     case 0x1B: // MBC5+RAM+BATTERY
+      return MBC5_BATTERY;
     case 0x1C: // MBC5+RUMBLE
     case 0x1D: // MBC5+RUMBLE+RAM
+      return MBC5;
     case 0x1E: // MBC5+RUMBLE+RAM+BATTERY
+      return MBC5_BATTERY;
     case 0xFC: // POCKET CAMERA
     case 0xFD: // BANDAI TAMA5
     case 0xFE: // HuC3

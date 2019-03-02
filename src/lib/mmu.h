@@ -6,17 +6,21 @@
 
 #include <stdint.h>
 
+#define MBC_BATTERY_BIT 0x80
+
 typedef enum {
   NONE = 0x00,
   MBC1 = 0x01,
-  MBC1_BATTERY = 0x81,
+  MBC1_BATTERY = MBC1 + MBC_BATTERY_BIT,
   MBC3 = 0x02,
-  MBC3_BATTERY = 0x82,
-  NOT_SUPPORTED = 0x03
+  MBC3_BATTERY = MBC3 + MBC_BATTERY_BIT,
+  MBC5 = 0x03,
+  MBC5_BATTERY = MBC5 + MBC_BATTERY_BIT,
+  NOT_SUPPORTED = 0xFF
 } mbc;
 
 #define MBC_TYPE_MASK (uint8_t)0x7F
-#define MBC_BATTERY_MASK (uint8_t)0x80
+#define MBC_BATTERY_MASK (uint8_t)MBC_BATTERY_BIT
 
 struct memory_s {
   uint8_t ie_register;
@@ -52,14 +56,14 @@ struct memory_s {
   struct {
     bool mode;
     struct {
-      uint8_t selected;
+      uint16_t selected;
       uint32_t offset;
-      uint8_t blocks;
+      uint16_t blocks;
     }rom;
     struct {
       bool enabled, written;
       uint8_t selected;
-      uint8_t data[4][8192];
+      uint8_t data[16][8192];
     }ram;
   }banks;
 
