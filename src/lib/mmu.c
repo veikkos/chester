@@ -128,6 +128,15 @@ static inline uint16_t get_internal_bank_offset(memory* mem)
   const uint8_t bank = mem->high_empty[MEM_SVBK_ADDR - MEM_HIGH_EMPTY_START_ADDR];
   return (bank - 1) * 4096;
 }
+
+static void colorPaletteData(memory* mem, const uint16_t index_addr, const uint8_t palette_index, const uint8_t input)
+{
+  uint8_t* bcps_bgpi = &mem->high_empty[index_addr - MEM_HIGH_EMPTY_START_ADDR];
+  const uint8_t index = *bcps_bgpi & 0x3F;
+  mem->palette[palette_index][index] = input;
+  if (*bcps_bgpi & MEM_PALETTE_INDEX_INCREMENT_FLAG)
+    (*bcps_bgpi)++;
+}
 #endif
 
 void mmu_write_byte(memory *mem,
@@ -378,15 +387,12 @@ void mmu_write_byte(memory *mem,
             case MEM_VBK_ADDR:
               mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & 0x01;
               break;
-            case MEM_BCPD_BGPD:
-              {
-                uint8_t* bcps_bgpi = &mem->high_empty[MEM_BCPS_BGPI - MEM_HIGH_EMPTY_START_ADDR];
-                const uint8_t index = *bcps_bgpi & 0x3F;
-                mem->palette[MEM_BG_PALETTE_INDEX][index] = input;
-                if (*bcps_bgpi & MEM_BCPS_BGPI_INCREMENT_FLAG)
-                  (*bcps_bgpi)++;
-                break;
-              }
+            case MEM_BCPD_BGPD_ADDR:
+              colorPaletteData(mem, MEM_BCPS_BGPI_ADDR, MEM_BG_PALETTE_INDEX, input);
+              break;
+            case MEM_OCPD_OBPD_ADDR:
+              colorPaletteData(mem, MEM_OCPS_OBPI_ADDR, MEM_SPRITE_PALETTE_INDEX, input);
+              break;
             default:
 #endif
               // Special register stops bootloader
