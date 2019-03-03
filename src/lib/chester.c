@@ -66,9 +66,6 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
   case 0xC0:
     chester->mem.cgb_mode = true;
     break;
-  default:
-    chester->mem.cgb_mode = false;
-    break;
   }
 #endif
 

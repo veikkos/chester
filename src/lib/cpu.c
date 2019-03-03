@@ -27,6 +27,10 @@ void cpu_reset(registers *reg)
 
   reg->timer.tick = 0;
   reg->timer.div = 0;
+
+#ifdef EXPERIMENTAL_CGB
+  reg->speed_divider = 1;
+#endif
 }
 
 #ifndef NDEBUG
@@ -1186,6 +1190,24 @@ int cpu_next_command(registers *reg, memory *mem)
   if (reg->stop)
     {
       reg->clock.last.t = 4;
+
+#ifdef EXPERIMENTAL_CGB
+      // CPU speed switch check
+      uint8_t *key1 = &mem->high_empty[MEM_KEY1_ADDR - MEM_HIGH_EMPTY_START_ADDR];
+      if (*key1 & MEM_KEY1_PREPARE_SPEED_SWITCH_BIT)
+        {
+          // Clear switch bit
+          *key1 &= ~MEM_KEY1_PREPARE_SPEED_SWITCH_BIT;
+
+          // Toggle mode from Normal to Double or vice versa
+          *key1 ^= MEM_KEY1_MODE_BIT;
+
+          // Cache mode
+          reg->speed_divider = *key1 & MEM_KEY1_MODE_BIT ? 2 : 1;
+
+          reg->stop = false;
+        }
+#endif
       return 0;
     }
 
@@ -2216,6 +2238,10 @@ int cpu_next_command(registers *reg, memory *mem)
         }
       return 1;
     }
+
+#if EXPERIMENTAL_CGB
+  reg->clock.last.t /= reg->speed_divider;
+#endif
 
   reg->clock.t += reg->clock.last.t;
 

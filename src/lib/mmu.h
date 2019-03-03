@@ -107,6 +107,7 @@ typedef struct memory_s memory;
 #define MEM_OBP1_ADDR 0xFF49
 #define MEM_WY_ADDR 0xFF4A
 #define MEM_WX_ADDR 0xFF4B
+#define MEM_KEY1_ADDR 0xFF4D
 #define MEM_VBK_ADDR 0xFF4F
 #define MEM_HDMA1_ADDR 0xFF51
 #define MEM_HDMA2_ADDR 0xFF52
@@ -150,6 +151,9 @@ typedef struct memory_s memory;
 
 #define MEM_CHARACTER_CODE_BANK_INDEX 0
 #define MEM_ATTRIBUTES_CODE_BANK_INDEX 1
+
+#define MEM_KEY1_PREPARE_SPEED_SWITCH_BIT 0x01
+#define MEM_KEY1_MODE_BIT 0x80
 
 void mmu_reset(memory *mem);
 

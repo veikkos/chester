@@ -48,6 +48,9 @@ struct registers_s {
   struct {
     unsigned int tick, div, t_timer;
   } timer;
+#ifdef EXPERIMENTAL_CGB
+  uint8_t speed_divider;
+#endif
 };
 
 typedef struct registers_s registers;

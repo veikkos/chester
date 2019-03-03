@@ -129,7 +129,7 @@ static inline void halt(registers *reg, memory *mem)
 
 static inline void stop(registers *reg)
 {
-  //reg->stop = true;
+  reg->stop = true;
 
   reg->clock.last.t = 4;
 }

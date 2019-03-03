@@ -211,8 +211,9 @@ static inline void process_background_tiles(memory *mem,
 
       const uint16_t tile_base_addr_final = tile_base_addr + (id * 16) - 0x8000;
       tile_data = 0;
+      size_t i;
 
-      for (size_t i = 0; i < 2; ++i)
+      for (i = 0; i < 2; ++i)
         {
           tile_data += mem->video_ram
 #ifdef EXPERIMENTAL_CGB

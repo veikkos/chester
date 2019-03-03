@@ -20,6 +20,7 @@ void mmu_reset(memory *mem)
   memset(mem->video_ram, 0, sizeof mem->video_ram);
 #if EXPERIMENTAL_CGB
   memset(mem->palette, 0, sizeof mem->palette);
+  mem->cgb_mode = false;
 #endif
 
   mem->rom.data = NULL;
