@@ -145,7 +145,7 @@ static inline void process_background_tiles(memory *mem,
                                             uint8_t *row_data)
 {
   size_t tile_pos;
-  uint16_t tile_data;
+  uint16_t tile_data = 0;
 
   uint16_t input_line = line + line_data_offset;
   if (input_line >= 256)
@@ -158,13 +158,19 @@ static inline void process_background_tiles(memory *mem,
   uint8_t mono_palette = 0;
   const uint16_t base_addr = addr;
   const uint8_t* color_palette = NULL;
+  bool horizontal_flip = false;
+  uint8_t tile_vram_bank_number = 0;
 #else
   const uint8_t mono_palette = mmu_read_byte(mem, palette_addr);
 #endif
 
   for(tile_pos=0; tile_pos<32; ++tile_pos)
     {
-      uint8_t id = mmu_read_byte(mem, addr++);
+      uint8_t id = mem->video_ram
+#ifdef EXPERIMENTAL_CGB
+        [MEM_CHARACTER_CODE_BANK_INDEX]
+#endif
+        [addr++ - 0x8000];
 
       // TODO: fix properly
       if (tile_data_addr == MEM_TILE_ADDR_1)
@@ -173,9 +179,24 @@ static inline void process_background_tiles(memory *mem,
 #ifdef EXPERIMENTAL_CGB
       if (mem->cgb_mode)
         {
-          const uint8_t bg_map = mem->video_ram[1][base_addr - 0x8000 + tile_pos];
+          const uint8_t bg_map = mem->video_ram[MEM_ATTRIBUTES_CODE_BANK_INDEX][base_addr - 0x8000 + tile_pos];
           const uint8_t bg_palette_num = bg_map & 0x07;
-          //const uint8_t tile_vram_bank_number = (bg_map >> 3) & 0x01;
+          tile_vram_bank_number = (bg_map >> 3) & 0x01;
+          horizontal_flip = (bg_map >> 5) & 0x01;
+
+          static bool vertical_flip_logged = false;
+
+          if (!vertical_flip_logged)
+            {
+              const bool vertical_flip = (bg_map >> 6) & 0x01;
+
+              if (vertical_flip)
+                {
+                  gb_log(WARNING, "BG tile vertical flip not supported");
+                }
+
+              vertical_flip_logged = true;
+            }
 
           color_palette = &mem->palette[MEM_BG_PALETTE_INDEX][bg_palette_num * 8];
         }
@@ -185,7 +206,17 @@ static inline void process_background_tiles(memory *mem,
         }
 #endif
 
-      tile_data = mmu_read_word(mem, tile_base_addr + (id * 16));
+      const uint16_t tile_base_addr_final = tile_base_addr + (id * 16) - 0x8000;
+      tile_data = 0;
+
+      for (size_t i = 0; i < 2; ++i)
+        {
+          tile_data += mem->video_ram
+#ifdef EXPERIMENTAL_CGB
+            [tile_vram_bank_number]
+#endif
+            [tile_base_addr_final + i] << (i * 8);
+        }
 
       write_texture(line,
                     (uint16_t)(tile_pos * 8 + offset),
@@ -194,7 +225,11 @@ static inline void process_background_tiles(memory *mem,
                     row_data,
                     false,
                     true,
+#ifdef EXPERIMENTAL_CGB
+                    horizontal_flip,
+#else
                     false,
+#endif
                     mono_palette
 #ifdef EXPERIMENTAL_CGB
                     , color_palette

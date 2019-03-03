@@ -100,7 +100,7 @@ static inline void check_isr(registers *reg, memory *mem)
         }
       else if (if_flags & MEM_IF_PIN_FLAG)
         {
-          gb_log (ERROR, "INPUT ISR");
+          gb_log (VERBOSE, "INPUT ISR");
 
           if_flags &= ~MEM_IF_PIN_FLAG;
           mmu_write_byte(mem, MEM_IF_ADDR, if_flags);

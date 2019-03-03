@@ -143,6 +143,9 @@ typedef struct memory_s memory;
 
 #define MEM_TAC_START 0x04
 
+#define MEM_CHARACTER_CODE_BANK_INDEX 0
+#define MEM_ATTRIBUTES_CODE_BANK_INDEX 1
+
 void mmu_reset(memory *mem);
 
 #ifndef NDEBUG
