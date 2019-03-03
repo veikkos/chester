@@ -202,7 +202,9 @@ static inline void process_background_tiles(memory *mem,
         }
       else
         {
+#endif
           mono_palette = mmu_read_byte(mem, palette_addr);
+#ifdef EXPERIMENTAL_CGB
         }
 #endif
 
@@ -259,6 +261,9 @@ static inline void process_sprite_attributes(memory *mem,
   }sprite_attributes;
   // Read sprites back to front to get priority correct
   attribute_map_addr += number_of_sprites * sprite_attributes_len - 1;
+#ifdef EXPERIMENTAL_CGB
+  const uint8_t* color_palette = NULL;
+#endif
 
   for(i=0; i<number_of_sprites; ++i)
     {
@@ -279,11 +284,24 @@ static inline void process_sprite_attributes(memory *mem,
               const uint16_t mono_palette_address =
                 sprite_attributes.flags & OBJ_PALETTE_FLAG ?
                 MEM_OBP1_ADDR : MEM_OBP0_ADDR;
-              const uint8_t mono_palette =
-                mmu_read_byte(mem, mono_palette_address);
+              uint8_t mono_palette = 0;
               const bool x_flip = sprite_attributes.flags & OBJ_X_FLIP_FLAG;
               const bool y_flip = sprite_attributes.flags & OBJ_Y_FLIP_FLAG;
               uint8_t sprite_line = (line - sprite_attributes.pos.y) % heigth;
+
+#ifdef EXPERIMENTAL_CGB
+              if (mem->cgb_mode)
+                {
+                  const uint8_t bg_palette_num = sprite_attributes.flags & 0x07;
+                  color_palette = &mem->palette[MEM_SPRITE_PALETTE_INDEX][bg_palette_num * 8];
+                }
+              else
+                {
+#endif
+                  mono_palette = mmu_read_byte(mem, mono_palette_address);
+#ifdef EXPERIMENTAL_CGB
+                }
+#endif
 
               if (y_flip)
                 {
@@ -305,7 +323,7 @@ static inline void process_sprite_attributes(memory *mem,
                             x_flip,
                             mono_palette
 #ifdef EXPERIMENTAL_CGB
-                            , NULL
+                            , color_palette
 #endif
               );
             }
