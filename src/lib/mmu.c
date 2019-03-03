@@ -139,6 +139,56 @@ static void colorPaletteData(memory* mem, const uint16_t index_addr, const uint8
 }
 #endif
 
+static inline void dma(memory* mem, const uint8_t input)
+{
+  const uint16_t input_addr = (uint16_t)input << 8;
+  uint8_t *input_ptr = NULL;
+
+  switch (input_addr & 0xF000)
+  {
+  case 0x0000:
+  case 0x1000:
+  case 0x2000:
+  case 0x3000:
+    input_ptr = &mem->rom.data[input_addr];
+    break;
+  case 0x4000:
+  case 0x5000:
+  case 0x6000:
+  case 0x7000:
+    input_ptr = &mem->rom.data[input_addr + mem->banks.rom.offset];
+    break;
+  case 0x8000:
+  case 0x9000:
+    input_ptr = &mem->video_ram
+#ifdef EXPERIMENTAL_CGB
+      [get_video_ram_bank(mem)]
+#endif
+      [input_addr - 0x8000];
+    break;
+  case 0xA000:
+  case 0xB000:
+    input_ptr = &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
+    break;
+  case 0xC000:
+#ifndef EXPERIMENTAL_CGB
+  case 0xD000:
+#endif
+    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000];
+    break;
+#ifdef EXPERIMENTAL_CGB
+  case 0xD000:
+    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000 + get_internal_bank_offset(mem)];
+    break;
+#endif
+  default:
+    break;
+  }
+
+  assert(input_ptr);
+  memcpy(mem->oam, input_ptr, 160);
+}
+
 void mmu_write_byte(memory *mem,
                     const uint16_t address,
                     const uint8_t input)
@@ -313,53 +363,7 @@ void mmu_write_byte(memory *mem,
               break;
             case MEM_DMA_ADDR:
               {
-                const uint16_t input_addr = (uint16_t)input << 8;
-                uint8_t *input_ptr = NULL;
-
-                switch(input_addr & 0xF000)
-                  {
-                  case 0x0000:
-                  case 0x1000:
-                  case 0x2000:
-                  case 0x3000:
-                    input_ptr = &mem->rom.data[input_addr];
-                    break;
-                  case 0x4000:
-                  case 0x5000:
-                  case 0x6000:
-                  case 0x7000:
-                    input_ptr = &mem->rom.data[input_addr + mem->banks.rom.offset];
-                    break;
-                  case 0x8000:
-                  case 0x9000:
-                    input_ptr = &mem->video_ram
-#ifdef EXPERIMENTAL_CGB
-                        [get_video_ram_bank(mem)]
-#endif
-                        [input_addr - 0x8000];
-                    break;
-                  case 0xA000:
-                  case 0xB000:
-                    input_ptr = &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
-                    break;
-                  case 0xC000:
-#ifndef EXPERIMENTAL_CGB
-                  case 0xD000:
-#endif
-                    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000];
-                    break;
-#ifdef EXPERIMENTAL_CGB
-                  case 0xD000:
-
-                    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000 + get_internal_bank_offset(mem)];
-                    break;
-#endif
-                  default:
-                    break;
-                  }
-
-                assert(input_ptr);
-                memcpy(mem->oam, input_ptr, 160);
+                dma(mem, input);
                 break;
               }
             case MEM_TIMA_ADDR:
