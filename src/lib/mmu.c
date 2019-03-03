@@ -392,10 +392,17 @@ void mmu_write_byte(memory *mem,
               mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & 0x01;
               break;
             case MEM_BCPD_BGPD_ADDR:
-              colorPaletteData(mem, MEM_BCPS_BGPI_ADDR, MEM_BG_PALETTE_INDEX, input);
+              colorPaletteData(mem, MEM_BCPS_BGPI_ADDR, MEM_PALETTE_BG_INDEX, input);
               break;
             case MEM_OCPD_OBPD_ADDR:
-              colorPaletteData(mem, MEM_OCPS_OBPI_ADDR, MEM_SPRITE_PALETTE_INDEX, input);
+              colorPaletteData(mem, MEM_OCPS_OBPI_ADDR, MEM_PALETTE_SPRITE_INDEX, input);
+              break;
+            case MEM_HDMA1_ADDR:
+            case MEM_HDMA2_ADDR:
+            case MEM_HDMA3_ADDR:
+            case MEM_HDMA4_ADDR:
+            case MEM_HDMA5_ADDR:
+              gb_log(WARNING, "VRAM DMA not supported");
               break;
             default:
 #endif

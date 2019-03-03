@@ -108,6 +108,11 @@ typedef struct memory_s memory;
 #define MEM_WY_ADDR 0xFF4A
 #define MEM_WX_ADDR 0xFF4B
 #define MEM_VBK_ADDR 0xFF4F
+#define MEM_HDMA1_ADDR 0xFF51
+#define MEM_HDMA2_ADDR 0xFF52
+#define MEM_HDMA3_ADDR 0xFF53
+#define MEM_HDMA4_ADDR 0xFF54
+#define MEM_HDMA5_ADDR 0xFF55
 #define MEM_BCPS_BGPI_ADDR 0xFF68
 #define MEM_BCPD_BGPD_ADDR 0xFF69
 #define MEM_OCPS_OBPI_ADDR 0xFF6A
@@ -138,8 +143,8 @@ typedef struct memory_s memory;
 
 #define MEM_PALETTE_INDEX_INCREMENT_FLAG 0x80
 
-#define MEM_BG_PALETTE_INDEX 0
-#define MEM_SPRITE_PALETTE_INDEX 1
+#define MEM_PALETTE_BG_INDEX 0
+#define MEM_PALETTE_SPRITE_INDEX 1
 
 #define MEM_TAC_START 0x04
 

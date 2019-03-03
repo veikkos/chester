@@ -40,7 +40,7 @@ static inline uint8_t convert_color(uint8_t color)
 }
 
 static inline const uint8_t *get_color(const unsigned int raw_color,
-                                 const uint8_t *palette)
+                                       const uint8_t *palette)
 {
   static uint8_t colors[3];
   const uint16_t p_colors = palette[raw_color * 2] + (palette[raw_color * 2 + 1] << 8);
@@ -51,10 +51,15 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
 
   return colors;
 }
+
+static inline uint8_t *get_palette_address(memory *mem, const uint8_t palette_index, const uint8_t bg_palette_num)
+{
+  return &mem->palette[palette_index][bg_palette_num * 8];
+}
 #endif
 
 static inline const uint8_t *get_mono_color(const unsigned int raw_color,
-                                      const unsigned int palette)
+                                            const unsigned int palette)
 {
   static const uint8_t colors[] = { 255, 255, 255, 192, 192, 192, 96, 96, 96, 0, 0, 0 };
   return &colors[((palette >> (raw_color * 2)) & 0x03) * 3];
@@ -139,7 +144,6 @@ static inline void process_background_tiles(memory *mem,
                                             uint8_t line_data_offset,
                                             const uint16_t tile_map_addr,
                                             const uint16_t tile_data_addr,
-                                            const uint16_t palette_addr,
                                             const int16_t offset,
                                             uint8_t *output,
                                             uint8_t *row_data)
@@ -155,14 +159,17 @@ static inline void process_background_tiles(memory *mem,
   uint16_t addr =
     tile_map_addr + (line_offset * 32);
 #ifdef EXPERIMENTAL_CGB
-  uint8_t mono_palette = 0;
   const uint16_t base_addr = addr;
   const uint8_t* color_palette = NULL;
   bool horizontal_flip = false;
   uint8_t tile_vram_bank_number = 0;
-#else
-  const uint8_t mono_palette = mmu_read_byte(mem, palette_addr);
 #endif
+
+  const uint8_t mono_palette =
+#ifdef EXPERIMENTAL_CGB
+    mem->cgb_mode ? 0 :
+#endif
+    mmu_read_byte(mem, MEM_BGP_ADDR);
 
   for(tile_pos=0; tile_pos<32; ++tile_pos)
     {
@@ -180,7 +187,7 @@ static inline void process_background_tiles(memory *mem,
       if (mem->cgb_mode)
         {
           const uint8_t bg_map = mem->video_ram[MEM_ATTRIBUTES_CODE_BANK_INDEX][base_addr - 0x8000 + tile_pos];
-          const uint8_t bg_palette_num = bg_map & 0x07;
+          const uint8_t palette_num = bg_map & PALETTE_NUM_MASK;
           tile_vram_bank_number = (bg_map >> 3) & 0x01;
           horizontal_flip = (bg_map >> 5) & 0x01;
 
@@ -198,13 +205,7 @@ static inline void process_background_tiles(memory *mem,
               vertical_flip_logged = true;
             }
 
-          color_palette = &mem->palette[MEM_BG_PALETTE_INDEX][bg_palette_num * 8];
-        }
-      else
-        {
-#endif
-          mono_palette = mmu_read_byte(mem, palette_addr);
-#ifdef EXPERIMENTAL_CGB
+          color_palette = color_palette = get_palette_address(mem, MEM_PALETTE_BG_INDEX, palette_num);
         }
 #endif
 
@@ -292,8 +293,8 @@ static inline void process_sprite_attributes(memory *mem,
 #ifdef EXPERIMENTAL_CGB
               if (mem->cgb_mode)
                 {
-                  const uint8_t bg_palette_num = sprite_attributes.flags & 0x07;
-                  color_palette = &mem->palette[MEM_SPRITE_PALETTE_INDEX][bg_palette_num * 8];
+                  const uint8_t palette_num = sprite_attributes.flags & PALETTE_NUM_MASK;
+                  color_palette = get_palette_address(mem, MEM_PALETTE_SPRITE_INDEX, palette_num);
                 }
               else
                 {
@@ -361,7 +362,6 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                    mmu_read_byte(mem, MEM_SCY_ADDR),
                                    tile_map_address,
                                    tile_data_address,
-                                   MEM_BGP_ADDR,
                                    (int16_t)mmu_read_byte(mem, MEM_SCX_ADDR) *
                                    -1,
                                    g->locked_pixel_data,
@@ -390,7 +390,6 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                        256 - mmu_read_byte(mem, MEM_WY_ADDR),
                                        tile_map_address,
                                        tile_data_address,
-                                       MEM_BGP_ADDR,
                                        (int16_t)mmu_read_byte(mem, MEM_WX_ADDR)
                                        - 7,
                                        g->locked_pixel_data,

@@ -43,6 +43,8 @@ typedef void (*gpu_render_cb)(gpu* g);
 #define OBJ_Y_FLIP_FLAG 0x40
 #define OBJ_X_FLIP_FLAG 0x20
 
+#define PALETTE_NUM_MASK 0x07
+
 #define WINDOW_SCALE 2
 
 int gpu_init(gpu *g, gpu_init_cb cb);
