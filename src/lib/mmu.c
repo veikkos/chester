@@ -202,7 +202,7 @@ void mmu_write_byte(memory *mem,
     case 0x2000:
       if ((mem->rom.type & MBC_TYPE_MASK) == MBC5)
         {
-          mmu_select_rom_bank(mem, (uint16_t)input);
+          mmu_select_rom_bank(mem, (mem->banks.rom.selected & 0xFF00) + input);
           break;
         }
       // Intentional fall through
@@ -231,7 +231,7 @@ void mmu_write_byte(memory *mem,
     case 0x4000:
     case 0x5000:
       {
-        if (mem->banks.mode)
+        if (mem->banks.mode || (mem->rom.type & MBC_TYPE_MASK) == MBC5)
           {
             const uint8_t mask = (mem->rom.type & MBC_TYPE_MASK) == MBC5 ? 0x0F : 0x03;
             mem->banks.ram.selected = input & mask;
@@ -246,9 +246,6 @@ void mmu_write_byte(memory *mem,
               case MBC3:
                 if (!val) ++val;
                 break;
-              case MBC5:
-                gb_log(ERROR, "Should not set ROM bank here for MBC5");
-                return;
               default:
                 if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
                 break;
@@ -363,10 +360,8 @@ void mmu_write_byte(memory *mem,
               isr_compare_ly_lyc(mem, mmu_read_byte(mem, MEM_LY_ADDR), input);
               break;
             case MEM_DMA_ADDR:
-              {
-                dma(mem, input);
-                break;
-              }
+              dma(mem, input);
+              break;
             case MEM_TIMA_ADDR:
               mem->tima_modified = true;
               // Intentional fall through
@@ -402,9 +397,31 @@ void mmu_write_byte(memory *mem,
             case MEM_HDMA2_ADDR:
             case MEM_HDMA3_ADDR:
             case MEM_HDMA4_ADDR:
-            case MEM_HDMA5_ADDR:
-              gb_log(WARNING, "VRAM DMA not supported");
+              mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
               break;
+            case MEM_HDMA5_ADDR:
+              {
+                const uint16_t length = (uint16_t)(input & 0x7F) * 0x10 - 1;
+                const uint16_t src = (mem->high_empty[MEM_HDMA1_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) +
+                  (mem->high_empty[MEM_HDMA2_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
+                const uint16_t dst = ((mem->high_empty[MEM_HDMA3_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) & 0x1F00) +
+                  (mem->high_empty[MEM_HDMA4_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
+
+                if (input & 0x80)
+                  {
+                    gb_log(WARNING, "VRAM H-Blank DMA not supported");
+                  }
+                else
+                  {
+                    uint16_t i;
+                    const uint8_t bank = get_video_ram_bank(mem);
+                    for (i = 0; i < length; ++i)
+                      {
+                        mem->video_ram[bank][dst + i] = mmu_read_byte(mem, src + i);
+                      }
+                  }
+                break;
+              }
             default:
 #endif
               // Special register stops bootloader
