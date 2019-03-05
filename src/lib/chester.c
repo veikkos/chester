@@ -25,7 +25,7 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
   chester->bootloader = NULL;
 
   chester->keys_cumulative_ticks = 0;
-  chester->keys_ticks = 10000;
+  chester->keys_ticks = 15000;
 
   chester->save_timer = 0;
   chester->save_game_file = NULL;

@@ -29,7 +29,7 @@ void cpu_reset(registers *reg)
   reg->timer.div = 0;
 
 #ifdef EXPERIMENTAL_CGB
-  reg->speed_divider = 1;
+  reg->speed_shifter = 0;
 #endif
 }
 
@@ -57,10 +57,16 @@ void cpu_debug_print(registers *reg, level l)
 }
 #endif
 
+static inline uint8_t read_io_register(memory *mem, const uint16_t address)
+{
+  // Faster than mmu_read_byte
+  return mem->io_registers[address & 0x00FF];
+}
+
 static inline void check_halt_release(registers *reg, memory *mem)
 {
-  uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
-  if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
+  uint8_t if_flags = read_io_register(mem, MEM_IF_ADDR);
+  if_flags &= mem->ie_register;
 
   if (if_flags)
     {
@@ -70,8 +76,8 @@ static inline void check_halt_release(registers *reg, memory *mem)
 
 static inline void check_isr(registers *reg, memory *mem)
 {
-  uint8_t if_flags = mmu_read_byte(mem, MEM_IF_ADDR);
-  if_flags &= mmu_read_byte(mem, MEM_IE_ADDR);
+  uint8_t if_flags = read_io_register(mem, MEM_IF_ADDR);
+  if_flags &= mem->ie_register;
 
   if (if_flags)
     {
@@ -1203,7 +1209,7 @@ int cpu_next_command(registers *reg, memory *mem)
           *key1 ^= MEM_KEY1_MODE_BIT;
 
           // Cache mode
-          reg->speed_divider = *key1 & MEM_KEY1_MODE_BIT ? 2 : 1;
+          reg->speed_shifter = *key1 & MEM_KEY1_MODE_BIT ? 1 : 0;
 
           reg->stop = false;
         }
@@ -2240,7 +2246,7 @@ int cpu_next_command(registers *reg, memory *mem)
     }
 
 #if EXPERIMENTAL_CGB
-  reg->clock.last.t /= reg->speed_divider;
+  reg->clock.last.t >>= reg->speed_shifter;
 #endif
 
   reg->clock.t += reg->clock.last.t;

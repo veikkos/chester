@@ -3,6 +3,12 @@
 #include "interrupts.h"
 #include "logger.h"
 
+static inline uint8_t read_timer_register(memory *mem, uint16_t address)
+{
+  // Faster than mmu_read_byte
+  return mem->io_registers[address & 0x00FF];
+}
+
 void timer_update(registers *reg, memory *mem)
 {
   if (mem->tima_modified)
@@ -36,7 +42,7 @@ void timer_update(registers *reg, memory *mem)
       }
   }
 
-  const uint8_t tac = mmu_read_byte(mem, MEM_TAC_ADDR);
+  const uint8_t tac = read_timer_register(mem, MEM_TAC_ADDR);
 
   if (tac & MEM_TAC_START)
     {
@@ -54,7 +60,7 @@ void timer_update(registers *reg, memory *mem)
         {
           reg->timer.tick -= div;
 
-          const uint8_t t = mmu_read_byte(mem, MEM_TIMA_ADDR) + 1;
+          const uint8_t t = read_timer_register(mem, MEM_TIMA_ADDR) + 1;
 
           gb_log (VERBOSE, "Timer step (%02X)", t);
 
@@ -65,7 +71,7 @@ void timer_update(registers *reg, memory *mem)
               isr_set_if_flag(mem, MEM_IF_TIMER_OVF_FLAG);
 
               mem->io_registers[MEM_TIMA_ADDR & 0x00FF] =
-                mmu_read_byte(mem, MEM_TMA_ADDR);
+                read_timer_register(mem, MEM_TMA_ADDR);
             }
           else
             {

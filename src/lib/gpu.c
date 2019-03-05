@@ -34,7 +34,7 @@ void gpu_debug_print(gpu *g, level l)
 #endif
 
 #ifdef EXPERIMENTAL_CGB
-static inline uint8_t convert_color(uint8_t color)
+static inline uint8_t convert_color(const uint8_t color)
 {
   return (uint8_t)((uint32_t)(color) * 0xFF / 0x1F);
 }
@@ -52,7 +52,9 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   return colors;
 }
 
-static inline uint8_t *get_palette_address(memory *mem, const uint8_t palette_index, const uint8_t bg_palette_num)
+static inline uint8_t *get_palette_address(memory *mem,
+                                           const uint8_t palette_index,
+                                           const uint8_t bg_palette_num)
 {
   return &mem->palette[palette_index][bg_palette_num * 8];
 }
@@ -63,6 +65,21 @@ static inline const uint8_t *get_mono_color(const unsigned int raw_color,
 {
   static const uint8_t colors[] = { 255, 255, 255, 192, 192, 192, 96, 96, 96, 0, 0, 0 };
   return &colors[((palette >> (raw_color * 2)) & 0x03) * 3];
+}
+
+static inline const uint8_t *get_color_data(const unsigned int raw_color,
+                                            const uint8_t mono_palette
+#ifdef EXPERIMENTAL_CGB
+                                            , const uint8_t *color_palette
+#endif
+                                            )
+{
+    return
+#ifdef EXPERIMENTAL_CGB
+      color_palette ?
+      get_color(raw_color, color_palette) :
+#endif
+      get_mono_color(raw_color, mono_palette);
 }
 
 void write_texture(uint8_t line,
@@ -77,7 +94,7 @@ void write_texture(uint8_t line,
 #ifdef EXPERIMENTAL_CGB
                    , const uint8_t *color_palette
 #endif
-    )
+                   )
 {
   int i;
 
@@ -97,15 +114,9 @@ void write_texture(uint8_t line,
 
       if (x_position < 160)
         {
-          const unsigned int raw_color_1 = (raw_tile_data & (0x0001 << i)) >> i;
-          const unsigned int raw_color_2 = (raw_tile_data & (0x0100 << i)) >> (i + 7);
+          const unsigned int raw_color_1 = (raw_tile_data >> i) & 0x0001;
+          const unsigned int raw_color_2 = (raw_tile_data >> (i + 7)) & 0x0002;
           const unsigned int raw_color = raw_color_1 + raw_color_2;
-          const uint8_t *color =
-#ifdef EXPERIMENTAL_CGB
-              color_palette ?
-              get_color(raw_color, color_palette) :
-#endif
-              get_mono_color(raw_color, mono_palette);
 
           static const unsigned int per_line_offset = 256 * 4;
           const unsigned int line_offset = per_line_offset * line;
@@ -118,7 +129,11 @@ void write_texture(uint8_t line,
                   (priority ||
                    (!row_data[x_position])))
                 {
-                  memcpy(texture + output_pixel_offset, color, 3);
+                  memcpy(texture + output_pixel_offset, get_color_data(raw_color, mono_palette
+#ifdef EXPERIMENTAL_CGB
+                      , color_palette
+#endif
+                  ), 3);
                   texture[output_pixel_offset + 3] = 255;
                   if (row_data)
                     {
@@ -128,7 +143,11 @@ void write_texture(uint8_t line,
             }
           else
             {
-              memcpy(texture + output_pixel_offset, color, 3);
+              memcpy(texture + output_pixel_offset, get_color_data(raw_color, mono_palette
+#ifdef EXPERIMENTAL_CGB
+                  , color_palette
+#endif
+              ), 3);
               texture[output_pixel_offset + 3] = 255;
               if (row_data)
                 {
@@ -157,7 +176,7 @@ static inline void process_background_tiles(memory *mem,
   const uint8_t line_offset = input_line / 8;
   const uint16_t tile_base_addr = tile_data_addr + ((input_line % 8) * 2);
   uint16_t addr =
-    tile_map_addr + (line_offset * 32);
+    tile_map_addr + (line_offset * 32) - 0x8000;
 #ifdef EXPERIMENTAL_CGB
   const uint16_t base_addr = addr;
   const uint8_t* color_palette = NULL;
@@ -177,7 +196,7 @@ static inline void process_background_tiles(memory *mem,
 #ifdef EXPERIMENTAL_CGB
         [MEM_CHARACTER_CODE_BANK_INDEX]
 #endif
-        [addr++ - 0x8000];
+        [addr++];
 
       // TODO: fix properly
       if (tile_data_addr == MEM_TILE_ADDR_1)
@@ -186,7 +205,7 @@ static inline void process_background_tiles(memory *mem,
 #ifdef EXPERIMENTAL_CGB
       if (mem->cgb_mode)
         {
-          const uint8_t bg_map = mem->video_ram[MEM_ATTRIBUTES_CODE_BANK_INDEX][base_addr - 0x8000 + tile_pos];
+          const uint8_t bg_map = mem->video_ram[MEM_ATTRIBUTES_CODE_BANK_INDEX][base_addr + tile_pos];
           const uint8_t palette_num = bg_map & PALETTE_NUM_MASK;
           tile_vram_bank_number = (bg_map >> 3) & 0x01;
           horizontal_flip = (bg_map >> 5) & 0x01;
@@ -254,7 +273,7 @@ static inline void process_sprite_attributes(memory *mem,
   const unsigned int sprite_attributes_len = 4;
   int i;
   uint16_t tile_data;
-  const uint8_t heigth = high ? 16 : 8;
+  const uint8_t height = high ? 16 : 8;
   struct{
     struct{
       int16_t x, y;
@@ -280,7 +299,7 @@ static inline void process_sprite_attributes(memory *mem,
           sprite_attributes.pos.y -= 16;
 
           if (line >= sprite_attributes.pos.y &&
-              line < (sprite_attributes.pos.y + heigth))
+              line < (sprite_attributes.pos.y + height))
             {
               const bool priority = !(sprite_attributes.flags & OBJ_PRIORITY_FLAG);
               const uint16_t mono_palette_address =
@@ -289,7 +308,7 @@ static inline void process_sprite_attributes(memory *mem,
               uint8_t mono_palette = 0;
               const bool x_flip = sprite_attributes.flags & OBJ_X_FLIP_FLAG;
               const bool y_flip = sprite_attributes.flags & OBJ_Y_FLIP_FLAG;
-              uint8_t sprite_line = (line - sprite_attributes.pos.y) % heigth;
+              uint8_t sprite_line = (line - sprite_attributes.pos.y) % height;
 
 #ifdef EXPERIMENTAL_CGB
               if (mem->cgb_mode)
@@ -307,7 +326,7 @@ static inline void process_sprite_attributes(memory *mem,
 
               if (y_flip)
                 {
-                  sprite_line = (heigth - 1) - sprite_line;
+                  sprite_line = (height - 1) - sprite_line;
                 }
 
               tile_data = mmu_read_word(mem,
@@ -413,7 +432,8 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
 
 static state get_mode(memory *mem)
 {
-  const uint8_t stat = mmu_read_byte(mem, MEM_LCD_STAT);
+  // Optimize a bit by not reading through mmu_read_byte
+  const uint8_t stat = mem->io_registers[MEM_LCD_STAT & 0x00FF];
   return (state)(stat & LCD_STAT_MODE_MASK);
 }
 
