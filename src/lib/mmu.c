@@ -130,7 +130,7 @@ static inline uint16_t get_internal_bank_offset(memory* mem)
   return (bank - 1) * 4096;
 }
 
-static void colorPaletteData(memory* mem, const uint16_t index_addr, const uint8_t palette_index, const uint8_t input)
+static void color_palette_data(memory* mem, const uint16_t index_addr, const uint8_t palette_index, const uint8_t input)
 {
   uint8_t* bcps_bgpi = &mem->high_empty[index_addr - MEM_HIGH_EMPTY_START_ADDR];
   const uint8_t index = *bcps_bgpi & 0x3F;
@@ -230,31 +230,29 @@ void mmu_write_byte(memory *mem,
       break;
     case 0x4000:
     case 0x5000:
-      {
-        if (mem->banks.mode || (mem->rom.type & MBC_TYPE_MASK) == MBC5)
-          {
-            const uint8_t mask = (mem->rom.type & MBC_TYPE_MASK) == MBC5 ? 0x0F : 0x03;
-            mem->banks.ram.selected = input & mask;
-            gb_log(VERBOSE, "Selected RAM bank %d", mem->banks.ram.selected);
-          }
-        else
-          {
-            uint8_t val = (input & 0x03) << 5 | (mem->banks.rom.selected & 0x1F);
+      if (mem->banks.mode || (mem->rom.type & MBC_TYPE_MASK) == MBC5)
+        {
+          const uint8_t mask = (mem->rom.type & MBC_TYPE_MASK) == MBC5 ? 0x0F : 0x03;
+          mem->banks.ram.selected = input & mask;
+          gb_log(VERBOSE, "Selected RAM bank %d", mem->banks.ram.selected);
+        }
+      else
+        {
+          uint8_t val = (input & 0x03) << 5 | (mem->banks.rom.selected & 0x1F);
 
-            switch(mem->rom.type & MBC_TYPE_MASK)
-              {
-              case MBC3:
-                if (!val) ++val;
-                break;
-              default:
-                if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
-                break;
-              }
+          switch(mem->rom.type & MBC_TYPE_MASK)
+            {
+            case MBC3:
+              if (!val) ++val;
+              break;
+            default:
+              if (!val || val == 0x20 || val == 0x40 || val == 0x60) ++val;
+              break;
+            }
 
-            mmu_select_rom_bank(mem, val);
-          }
-        break;
-      }
+          mmu_select_rom_bank(mem, val);
+        }
+      break;
     case 0x6000:
     case 0x7000:
       mem->banks.mode = input & 0x01;
@@ -388,10 +386,10 @@ void mmu_write_byte(memory *mem,
               mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & 0x01;
               break;
             case MEM_BCPD_BGPD_ADDR:
-              colorPaletteData(mem, MEM_BCPS_BGPI_ADDR, MEM_PALETTE_BG_INDEX, input);
+              color_palette_data(mem, MEM_BCPS_BGPI_ADDR, MEM_PALETTE_BG_INDEX, input);
               break;
             case MEM_OCPD_OBPD_ADDR:
-              colorPaletteData(mem, MEM_OCPS_OBPI_ADDR, MEM_PALETTE_SPRITE_INDEX, input);
+              color_palette_data(mem, MEM_OCPS_OBPI_ADDR, MEM_PALETTE_SPRITE_INDEX, input);
               break;
             case MEM_HDMA1_ADDR:
             case MEM_HDMA2_ADDR:
