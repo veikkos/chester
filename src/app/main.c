@@ -9,7 +9,12 @@
 
 bool done = false;
 
-#ifndef WIN32
+#if defined(WIN32)
+#if defined(NDEBUG)
+// Hide console for Release builds
+#pragma comment(linker, "/SUBSYSTEM:windows /ENTRY:mainCRTStartup")
+#endif
+#else
 void sig_handler(int signum __attribute__((unused)))
 {
   done = true;
