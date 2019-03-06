@@ -399,7 +399,7 @@ void mmu_write_byte(memory *mem,
               break;
             case MEM_HDMA5_ADDR:
               {
-                const uint16_t length = (uint16_t)(input & 0x7F) * 0x10 - 1;
+                const uint16_t length = (uint16_t)((input & 0x7F) + 1) * 0x10;
                 const uint16_t src = (mem->high_empty[MEM_HDMA1_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) +
                   (mem->high_empty[MEM_HDMA2_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
                 const uint16_t dst = ((mem->high_empty[MEM_HDMA3_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) & 0x1F00) +
