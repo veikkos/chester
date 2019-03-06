@@ -197,13 +197,15 @@ static inline void process_background_tiles(memory *mem,
   if (input_line >= 256)
     input_line -= 256;
   const uint8_t line_offset = input_line / 8;
-  const uint16_t tile_base_addr = tile_data_addr + ((input_line % 8) * 2);
+  const uint8_t line_modulo = (input_line % 8);
+  const uint16_t tile_base_addr = tile_data_addr + (line_modulo * 2);
   uint16_t addr =
     tile_map_addr + (line_offset * 32) - 0x8000;
 #ifdef EXPERIMENTAL_CGB
   const uint16_t base_addr = addr;
   const uint8_t* color_palette = NULL;
   bool horizontal_flip = false;
+  int8_t vertical_flip_data_offset = 0;
   uint8_t tile_vram_bank_number = 0;
 #endif
 
@@ -232,20 +234,9 @@ static inline void process_background_tiles(memory *mem,
           const uint8_t palette_num = bg_map & PALETTE_NUM_MASK;
           tile_vram_bank_number = (bg_map >> 3) & 0x01;
           horizontal_flip = (bg_map >> 5) & 0x01;
-
-          static bool vertical_flip_logged = false;
-
-          if (!vertical_flip_logged)
-            {
-              const bool vertical_flip = (bg_map >> 6) & 0x01;
-
-              if (vertical_flip)
-                {
-                  gb_log(WARNING, "BG tile vertical flip not supported");
-                }
-
-              vertical_flip_logged = true;
-            }
+          vertical_flip_data_offset = (bg_map >> 6) & 0x01 ?
+            14 - line_modulo * 4
+            : 0;
 
           color_palette = color_palette = get_palette_address(mem, MEM_PALETTE_BG_INDEX, palette_num);
         }
@@ -256,6 +247,7 @@ static inline void process_background_tiles(memory *mem,
       tile_data = get_tile_data(mem,
         tile_base_addr_final
 #ifdef EXPERIMENTAL_CGB
+          + vertical_flip_data_offset
         , tile_vram_bank_number
 #endif
       );
