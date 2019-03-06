@@ -42,6 +42,7 @@ typedef void (*gpu_render_cb)(gpu* g);
 #define OBJ_PRIORITY_FLAG 0x80
 #define OBJ_Y_FLIP_FLAG 0x40
 #define OBJ_X_FLIP_FLAG 0x20
+#define OBJ_TILE_VRAM_BANK_FLAG 0x08
 
 #define PALETTE_NUM_MASK 0x07
 

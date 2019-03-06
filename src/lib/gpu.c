@@ -158,6 +158,29 @@ void write_texture(uint8_t line,
     }
 }
 
+
+static inline uint16_t get_tile_data(memory *mem,
+                                     const uint16_t address
+#ifdef EXPERIMENTAL_CGB
+                                     , const uint8_t tile_vram_bank_number
+#endif
+                                     )
+{
+  uint16_t tile_data = mem->video_ram
+#ifdef EXPERIMENTAL_CGB
+    [tile_vram_bank_number]
+#endif
+    [address];
+
+  tile_data += mem->video_ram
+#ifdef EXPERIMENTAL_CGB
+    [tile_vram_bank_number]
+#endif
+    [address + 1] << 8;
+
+  return tile_data;
+}
+
 static inline void process_background_tiles(memory *mem,
                                             const uint8_t line,
                                             uint8_t line_data_offset,
@@ -168,7 +191,7 @@ static inline void process_background_tiles(memory *mem,
                                             uint8_t *row_data)
 {
   size_t tile_pos;
-  uint16_t tile_data = 0;
+  uint16_t tile_data;
 
   uint16_t input_line = line + line_data_offset;
   if (input_line >= 256)
@@ -229,17 +252,13 @@ static inline void process_background_tiles(memory *mem,
 #endif
 
       const uint16_t tile_base_addr_final = tile_base_addr + (id * 16) - 0x8000;
-      tile_data = 0;
-      size_t i;
 
-      for (i = 0; i < 2; ++i)
-        {
-          tile_data += mem->video_ram
+      tile_data = get_tile_data(mem,
+        tile_base_addr_final
 #ifdef EXPERIMENTAL_CGB
-            [tile_vram_bank_number]
+        , tile_vram_bank_number
 #endif
-            [tile_base_addr_final + i] << (i * 8);
-        }
+      );
 
       write_texture(line,
                     (uint16_t)(tile_pos * 8 + offset),
@@ -284,6 +303,7 @@ static inline void process_sprite_attributes(memory *mem,
   attribute_map_addr += number_of_sprites * sprite_attributes_len - 1;
 #ifdef EXPERIMENTAL_CGB
   const uint8_t* color_palette = NULL;
+  uint8_t tile_vram_bank_number = 0;
 #endif
 
   for(i=0; i<number_of_sprites; ++i)
@@ -315,6 +335,7 @@ static inline void process_sprite_attributes(memory *mem,
                 {
                   const uint8_t palette_num = sprite_attributes.flags & PALETTE_NUM_MASK;
                   color_palette = get_palette_address(mem, MEM_PALETTE_SPRITE_INDEX, palette_num);
+                  tile_vram_bank_number = sprite_attributes.flags & OBJ_TILE_VRAM_BANK_FLAG ? 1 : 0;
                 }
               else
                 {
@@ -329,10 +350,16 @@ static inline void process_sprite_attributes(memory *mem,
                   sprite_line = (height - 1) - sprite_line;
                 }
 
-              tile_data = mmu_read_word(mem,
-                                        sprite_data_addr +
-                                        (sprite_attributes.pattern * 16) +
-                                        (sprite_line * 2));
+              const uint16_t tile_base_addr_final = sprite_data_addr +
+                (sprite_attributes.pattern * 16) +
+                (sprite_line * 2) - 0x8000;
+
+              tile_data = get_tile_data(mem,
+                tile_base_addr_final
+#ifdef EXPERIMENTAL_CGB
+                , tile_vram_bank_number
+#endif
+              );
 
               write_texture(line,
                             sprite_attributes.pos.x,
