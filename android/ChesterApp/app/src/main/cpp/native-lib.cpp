@@ -2,12 +2,8 @@
 #include <string>
 #include <stdlib.h>
 #include <unistd.h>
-#include <android/log.h>
 #include <assert.h>
 
-#define LOG_E(fmt, ...) __android_log_print(ANDROID_LOG_ERROR, "Chester", fmt, ##__VA_ARGS__)
-#define LOG_D(fmt, ...) __android_log_print(ANDROID_LOG_DEBUG, "Chester", fmt, ##__VA_ARGS__)
-#define LOG_V(fmt, ...) __android_log_print(ANDROID_LOG_VERBOSE, "Chester", fmt, ##__VA_ARGS__)
 static JavaVM *jvm;
 
 extern "C"

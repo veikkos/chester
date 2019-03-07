@@ -45,9 +45,19 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   static uint8_t colors[3];
   const uint16_t p_colors = palette[raw_color * 2] + (palette[raw_color * 2 + 1] << 8);
 
-  colors[2] = convert_color(p_colors & 0x1F);
-  colors[1] = convert_color((p_colors >> 5) & 0x1F);
-  colors[0] = convert_color((p_colors >> 10) & 0x1F);
+#if defined (RGBA8888)
+  const uint8_t r_index = 0;
+  const uint8_t g_index = 1;
+  const uint8_t b_index = 2;
+#else // BGRA8888
+  const uint8_t r_index = 2;
+  const uint8_t g_index = 1;
+  const uint8_t b_index = 0;
+#endif
+
+  colors[r_index] = convert_color(p_colors & 0x1F);
+  colors[g_index] = convert_color((p_colors >> 5) & 0x1F);
+  colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
 
   return colors;
 }

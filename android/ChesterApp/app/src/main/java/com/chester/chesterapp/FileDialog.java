@@ -84,7 +84,7 @@ public class FileDialog {
                     File sel = new File(dir, filename);
                     if (!sel.canRead()) return false;
                     else {
-                        boolean endsWith = mFileEnd == null || filename.toLowerCase().endsWith(mFileEnd);
+                        boolean endsWith = mFileEnd == null || filename.toLowerCase().contains(mFileEnd);
                         return endsWith || sel.isDirectory();
                     }
                 }
