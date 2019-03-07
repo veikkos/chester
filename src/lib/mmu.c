@@ -375,7 +375,7 @@ void mmu_write_byte(memory *mem,
             {
             case MEM_SVBK_ADDR:
               {
-                uint8_t bank = input & 0x03;
+                uint8_t bank = input & MEM_VBK_BANK_MASK;
                 if (!bank)
                   bank = 1;
 

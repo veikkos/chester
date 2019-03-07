@@ -155,6 +155,8 @@ typedef struct memory_s memory;
 #define MEM_KEY1_PREPARE_SPEED_SWITCH_BIT 0x01
 #define MEM_KEY1_MODE_BIT 0x80
 
+#define MEM_VBK_BANK_MASK 0x07
+
 void mmu_reset(memory *mem);
 
 #ifndef NDEBUG
