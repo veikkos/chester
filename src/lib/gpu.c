@@ -102,7 +102,8 @@ void write_texture(uint8_t line,
                    bool x_flip,
                    uint8_t mono_palette
 #ifdef EXPERIMENTAL_CGB
-                   , const uint8_t *color_palette
+                   , const uint8_t *color_palette,
+                   bool bg_priority
 #endif
                    )
 {
@@ -136,6 +137,9 @@ void write_texture(uint8_t line,
           if (transparent)
             {
               if (raw_color &&
+#ifdef EXPERIMENTAL_CGB
+                  row_data[x_position] != PRIORITY_COLOR &&
+#endif
                   (priority ||
                    (!row_data[x_position])))
                 {
@@ -161,13 +165,17 @@ void write_texture(uint8_t line,
               texture[output_pixel_offset + 3] = 255;
               if (row_data)
                 {
-                  row_data[x_position] = (uint8_t)raw_color;
+                  row_data[x_position] =
+#ifdef EXPERIMENTAL_CGB
+                    bg_priority && raw_color ?
+                    PRIORITY_COLOR :
+#endif
+                    (uint8_t)raw_color;
                 }
             }
         }
     }
 }
-
 
 static inline uint16_t get_tile_data(memory *mem,
                                      const uint16_t address
@@ -217,6 +225,7 @@ static inline void process_background_tiles(memory *mem,
   bool horizontal_flip = false;
   int8_t vertical_flip_data_offset = 0;
   uint8_t tile_vram_bank_number = 0;
+  bool priority = false;
 #endif
 
   const uint8_t mono_palette =
@@ -247,6 +256,7 @@ static inline void process_background_tiles(memory *mem,
           vertical_flip_data_offset = (bg_map >> 6) & 0x01 ?
             14 - line_modulo * 4
             : 0;
+          priority = (bg_map >> 7) & 0x01;
 
           color_palette = color_palette = get_palette_address(mem, MEM_PALETTE_BG_INDEX, palette_num);
         }
@@ -276,7 +286,8 @@ static inline void process_background_tiles(memory *mem,
 #endif
                     mono_palette
 #ifdef EXPERIMENTAL_CGB
-                    , color_palette
+                    , color_palette,
+                    priority
 #endif
       );
     }
@@ -373,7 +384,8 @@ static inline void process_sprite_attributes(memory *mem,
                             x_flip,
                             mono_palette
 #ifdef EXPERIMENTAL_CGB
-                            , color_palette
+                            , color_palette,
+                            false
 #endif
               );
             }

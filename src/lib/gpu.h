@@ -46,6 +46,8 @@ typedef void (*gpu_render_cb)(gpu* g);
 
 #define PALETTE_NUM_MASK 0x07
 
+#define PRIORITY_COLOR 0xFF
+
 #define WINDOW_SCALE 2
 
 int gpu_init(gpu *g, gpu_init_cb cb);
