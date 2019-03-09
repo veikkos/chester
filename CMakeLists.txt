@@ -13,5 +13,11 @@ if (EXPERIMENTAL_CGB)
     add_definitions(-DEXPERIMENTAL_CGB)
 endif ()
 
+if (MSVC)
+    add_compile_options(/WX /wd4996)
+else()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror")
+endif()
+
 add_subdirectory(src/lib)
 add_subdirectory(src/app)

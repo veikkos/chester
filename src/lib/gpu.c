@@ -258,7 +258,7 @@ static inline void process_background_tiles(memory *mem,
             : 0;
           priority = (bg_map >> 7) & 0x01;
 
-          color_palette = color_palette = get_palette_address(mem, MEM_PALETTE_BG_INDEX, palette_num);
+          color_palette = get_palette_address(mem, MEM_PALETTE_BG_INDEX, palette_num);
         }
 #endif
 
