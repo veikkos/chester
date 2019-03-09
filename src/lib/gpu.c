@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <string.h>
+#include <math.h>
 
 int gpu_init(gpu *g, gpu_init_cb cb)
 {
@@ -34,6 +35,75 @@ void gpu_debug_print(gpu *g, level l)
 #endif
 
 #ifdef EXPERIMENTAL_CGB
+#ifdef COLOR_CORRECTION
+// Adaptation of http://alienryderflex.com/saturation.html by Darel Rex Finley
+static inline void change_saturation(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
+{
+  static const double p_r = 0.299;
+  static const double p_g = 0.587;
+  static const double p_b = 0.114;
+
+  const double R = *r / 255.0f;
+  const double G = *g / 255.0f;
+  const double B = *b / 255.0f;
+
+  const double  P = sqrt(
+    R * R * p_r +
+    G * G * p_g +
+    B * B * p_b);
+
+  *r = (uint8_t)((P + (R - P) * change) * 0xFF);
+  *g = (uint8_t)((P + (G - P) * change) * 0xFF);
+  *b = (uint8_t)((P + (B - P) * change) * 0xFF);
+}
+
+static inline uint8_t truncate(const double value)
+{
+  if (value < 0) return 0;
+  if (value > 255) return 255;
+
+  return (uint8_t)value;
+}
+
+// Adaptation of https://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-5-contrast-adjustment/
+// by Francis G. Loch
+static inline void change_contrast(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
+{
+  const uint8_t R = *r;
+  const uint8_t G = *g;
+  const uint8_t B = *b;
+
+  *r = truncate(change * (R - 128) + 128);
+  *g = truncate(change * (G - 128) + 128);
+  *b = truncate(change * (B - 128) + 128);
+}
+
+static inline void wash_color_if(uint8_t *c, const uint8_t largest, const double change)
+{
+  if (largest > *c)
+  {
+    const uint8_t diff = largest - *c;
+    *c += (uint8_t)(change * diff);
+  }
+}
+
+static inline void wash_colors(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
+{
+  uint8_t largest;
+
+  if (*r >= *g && *r >= *b)
+    largest = *r;
+  else if (*g >= *r && *g >= *b)
+    largest = *g;
+  else
+    largest = *b;
+
+  wash_color_if(r, largest, change);
+  wash_color_if(g, largest, change);
+  wash_color_if(b, largest, change);
+}
+#endif
+
 static inline uint8_t convert_color(const uint8_t color)
 {
   return (uint8_t)((uint32_t)(color) * 0xFF / 0x1F);
@@ -58,6 +128,12 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   colors[r_index] = convert_color(p_colors & 0x1F);
   colors[g_index] = convert_color((p_colors >> 5) & 0x1F);
   colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
+
+#ifdef COLOR_CORRECTION
+  change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.8);
+  change_contrast(&colors[r_index], &colors[g_index], &colors[b_index], 0.95);
+  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index], 0.25);
+#endif
 
   return colors;
 }

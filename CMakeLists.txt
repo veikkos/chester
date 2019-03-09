@@ -11,6 +11,12 @@ if (EXPERIMENTAL_CGB)
     message(STATUS "")
 
     add_definitions(-DEXPERIMENTAL_CGB)
+
+    option (COLOR_CORRECTION "Emulate original display colors." ON)
+
+    if (COLOR_CORRECTION)
+        add_definitions(-DCOLOR_CORRECTION)
+    endif()
 endif ()
 
 if (MSVC)
