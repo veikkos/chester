@@ -12,7 +12,7 @@ if (EXPERIMENTAL_CGB)
 
     add_definitions(-DEXPERIMENTAL_CGB)
 
-    option (COLOR_CORRECTION "Emulate original display colors." ON)
+    option (COLOR_CORRECTION "Emulate original display colors." OFF)
 
     if (COLOR_CORRECTION)
         add_definitions(-DCOLOR_CORRECTION)

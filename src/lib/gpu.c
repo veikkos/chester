@@ -57,27 +57,6 @@ static inline void change_saturation(uint8_t *r, uint8_t *g, uint8_t *b, const d
   *b = (uint8_t)((P + (B - P) * change) * 0xFF);
 }
 
-static inline uint8_t truncate(const double value)
-{
-  if (value < 0) return 0;
-  if (value > 255) return 255;
-
-  return (uint8_t)value;
-}
-
-// Adaptation of https://www.dfstudios.co.uk/articles/programming/image-programming-algorithms/image-processing-algorithms-part-5-contrast-adjustment/
-// by Francis G. Loch
-static inline void change_contrast(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
-{
-  const uint8_t R = *r;
-  const uint8_t G = *g;
-  const uint8_t B = *b;
-
-  *r = truncate(change * (R - 128) + 128);
-  *g = truncate(change * (G - 128) + 128);
-  *b = truncate(change * (B - 128) + 128);
-}
-
 static inline void wash_color_if(uint8_t *c, const uint8_t largest, const double change)
 {
   if (largest > *c)
@@ -130,9 +109,8 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
 
 #ifdef COLOR_CORRECTION
-  change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.8);
-  change_contrast(&colors[r_index], &colors[g_index], &colors[b_index], 0.95);
-  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index], 0.25);
+  change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.85);
+  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index], 0.15);
 #endif
 
   return colors;
