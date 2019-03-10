@@ -14,6 +14,28 @@ void timer_update(registers *reg, memory *mem)
       reg->timer.tick = 0;
     }
 
+  // DIV timer
+  {
+    const unsigned int div = 256;
+
+    // Reset the subcounter if timer was cleared
+    if (mem->div_modified)
+      {
+        mem->div_modified = false;
+        reg->timer.t_timer = 0;
+        reg->timer.tick = 0;
+      }
+
+    reg->timer.t_timer += reg->clock.last.t;
+
+    if (reg->timer.t_timer >= div)
+      {
+        reg->timer.t_timer -= div;
+
+        ++(mem->io_registers[MEM_DIV_ADDR & 0x00FF]);
+      }
+  }
+
   const uint8_t tac = mmu_read_byte(mem, MEM_TAC_ADDR);
 
   if (tac & MEM_TAC_START)
@@ -53,25 +75,4 @@ void timer_update(registers *reg, memory *mem)
 
       reg->timer.div = div;
     }
-
-  // DIV timer
-  {
-    const unsigned int div = 256;
-
-    // Reset the subcounter if timer was cleared
-    if (mem->div_modified)
-      {
-        mem->div_modified = false;
-        reg->timer.t_timer = 0;
-      }
-
-    reg->timer.t_timer += reg->clock.last.t;
-
-    if (reg->timer.t_timer >= div)
-      {
-        reg->timer.t_timer -= div;
-
-        ++(mem->io_registers[MEM_DIV_ADDR & 0x00FF]);
-      }
-  }
 }
