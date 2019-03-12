@@ -360,6 +360,8 @@ void mmu_write_byte(memory *mem,
             case MEM_DMA_ADDR:
               dma(mem, input);
               break;
+            case 0xFF26:
+              break;
             case MEM_TIMA_ADDR:
               mem->tima_modified = true;
               // Intentional fall through
