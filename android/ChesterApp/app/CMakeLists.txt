@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 file(GLOB ChesterSrcs ../../../src/lib/*.c)
 
-add_definitions(-DEXPERIMENTAL_CGB -DRGBA8888)
+add_definitions(-DEXPERIMENTAL_CGB -DCOLOR_CORRECTION -DRGBA8888)
 
 add_library(native-lib
             SHARED

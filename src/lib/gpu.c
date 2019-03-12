@@ -69,17 +69,33 @@ static inline void wash_color_if(uint8_t *c, const uint8_t largest, const double
 static inline void wash_colors(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
 {
   uint8_t largest;
+  uint8_t *second_largest;
 
   if (*r >= *g && *r >= *b)
-    largest = *r;
+    {
+      largest = *r;
+      second_largest = *g > *b ? g : b;
+    }
   else if (*g >= *r && *g >= *b)
-    largest = *g;
+    {
+      largest = *g;
+      second_largest = *r > *b ? r : b;
+    }
   else
-    largest = *b;
+    {
+      largest = *b;
+      second_largest = *r > *g ? r : g;
+    }
 
   wash_color_if(r, largest, change);
   wash_color_if(g, largest, change);
   wash_color_if(b, largest, change);
+
+  const double half_change = change / 2;
+
+  wash_color_if(r, *second_largest, half_change);
+  wash_color_if(g, *second_largest, half_change);
+  wash_color_if(b, *second_largest, half_change);
 }
 #endif
 
@@ -109,7 +125,7 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
 
 #ifdef COLOR_CORRECTION
-  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index], 0.25);
+  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index], 0.15);
   change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.85);
 #endif
 

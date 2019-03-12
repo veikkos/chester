@@ -92,7 +92,7 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
     {
       char* base_name_cpy = strdup(rom);
 #ifdef WIN32
-      char base_name[64];
+      char base_name[128];
       _splitpath(base_name_cpy, NULL, NULL, base_name, NULL);
 #else
       char* base_name = basename(base_name_cpy);
