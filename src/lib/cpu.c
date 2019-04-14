@@ -6,7 +6,7 @@ void cpu_reset(registers *reg)
   reg->pc = 0x0100;
   reg->sp = 0xFFFE;
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   reg->af = 0x11B0;
 #else
   reg->af = 0x01B0;
@@ -28,7 +28,7 @@ void cpu_reset(registers *reg)
   reg->timer.tick = 0;
   reg->timer.div = 0;
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   reg->speed_shifter = 0;
 #endif
 }
@@ -1197,7 +1197,7 @@ int cpu_next_command(registers *reg, memory *mem)
     {
       reg->clock.last.t = 4;
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
       // CPU speed switch check
       uint8_t *key1 = &mem->high_empty[MEM_KEY1_ADDR - MEM_HIGH_EMPTY_START_ADDR];
       if (*key1 & MEM_KEY1_PREPARE_SPEED_SWITCH_BIT)
@@ -2245,7 +2245,7 @@ int cpu_next_command(registers *reg, memory *mem)
       return 1;
     }
 
-#if EXPERIMENTAL_CGB
+#if CGB
   reg->clock.last.t >>= reg->speed_shifter;
 #endif
 

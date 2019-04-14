@@ -11,11 +11,11 @@ Chester has not been extensively tested. However, it doesn't have any major know
 
 ## What it does ##
 
-Chester does play several tested ROM-only, MBC1 and MBC3 games. It supports in-game saving for battery backed MBC1/MBC3 cartridges. Its accurate CPU instruction implementation passes Blargg's CPU instruction tests.
+Chester does play several tested ROM-only, MBC1, MBC3 and MBC5 games. It also supports Game Boy Color games and in-game saving for battery backed cartridges. Its accurate CPU instruction implementation passes Blargg's CPU instruction tests.
 
 ## What is it missing ##
 
-Most of the emulators have some inaccuracies but it doesn't mean they aren't usable in practise. Chester also has its limitations. It's missing sound support, (very) accurate instruction and memory timing, (very) accurate timers, full support for many cartridge types, full GPU accuracy... And probably few other things.
+Most of the emulators have some inaccuracies but it doesn't mean they aren't usable in practise. Chester also has its limitations. It's missing sound support, (very) accurate instruction and memory timing, (very) accurate timers, full support for some cartridge types, full GPU accuracy... And probably few other things.
 
 ## Dependencies ##
 
@@ -75,6 +75,21 @@ Needs Android SDK and NDK.
 ```
 $ cd android/ChesterApp/
 $ ./gradlew build
+```
+
+### Build options ###
+
+|                  | Description                                  | Options      |
+|------------------|----------------------------------------------|--------------|
+| CGB              | Game Boy Color support                       | **ON** / OFF |
+| COLOR_CORRECTION | Primitive color correction if CGB is enabled | **ON** / OFF |
+
+**Bolded** is default value.
+
+Usage e.g.
+
+```
+$ cmake -DCGB=OFF ..
 ```
 
 ## Tested platforms ##

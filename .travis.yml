@@ -5,7 +5,7 @@ matrix:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake ..
+        - cmake -DCGB=OFF ..
         - make
       compiler: clang
     - language: c
@@ -13,7 +13,7 @@ matrix:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake ..
+        - cmake -DCGB=OFF ..
         - make
       compiler: gcc
     - language: c
@@ -21,7 +21,7 @@ matrix:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake -DEXPERIMENTAL_CGB=ON ..
+        - cmake -DCGB=ON ..
         - make
       compiler: clang
     - language: c
@@ -29,7 +29,7 @@ matrix:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake -DEXPERIMENTAL_CGB=ON ..
+        - cmake -DCGB=ON ..
         - make
       compiler: gcc
     - language: android

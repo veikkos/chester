@@ -48,7 +48,7 @@ struct registers_s {
   struct {
     unsigned int tick, div, t_timer;
   } timer;
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   uint8_t speed_shifter;
 #endif
 };

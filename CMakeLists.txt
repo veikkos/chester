@@ -1,18 +1,18 @@
 cmake_minimum_required(VERSION 2.8.12)
 project(chester)
 
-option (EXPERIMENTAL_CGB "Experimental CGB support." OFF)
+option (CGB "CGB support." ON)
 
-if (EXPERIMENTAL_CGB)
+if (CGB)
     message(STATUS "")
-    message(STATUS " *************************************")
-    message(STATUS " * Enabled experimental CGB support! *")
-    message(STATUS " ************************************* ")
+    message(STATUS " ************************")
+    message(STATUS " * Enabled CGB support! *")
+    message(STATUS " ************************ ")
     message(STATUS "")
 
-    add_definitions(-DEXPERIMENTAL_CGB)
+    add_definitions(-DCGB)
 
-    option (COLOR_CORRECTION "Emulate original display colors." OFF)
+    option (COLOR_CORRECTION "Emulate original display colors." ON)
 
     if (COLOR_CORRECTION)
         add_definitions(-DCOLOR_CORRECTION)

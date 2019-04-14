@@ -59,7 +59,7 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
 
   mmu_set_rom(&chester->mem, chester->rom, type, rom_size);
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   switch (chester->rom[0x0143])
   {
   case 0x80:

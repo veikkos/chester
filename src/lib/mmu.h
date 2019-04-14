@@ -29,13 +29,13 @@ struct memory_s {
   uint8_t high_empty[52];
   uint8_t io_registers[76];
   uint8_t low_empty[96];
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   uint8_t internal_8k_ram[8192 + 6 * 4096];
 #else
   uint8_t internal_8k_ram[8192];
 #endif
   uint8_t oam[160];
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   uint8_t video_ram[2][8192];
   uint8_t palette[2][64];
 #else
@@ -67,7 +67,7 @@ struct memory_s {
     }ram;
   }banks;
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   bool cgb_mode;
 #endif
 };

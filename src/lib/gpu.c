@@ -34,7 +34,7 @@ void gpu_debug_print(gpu *g, level l)
 }
 #endif
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
 #ifdef COLOR_CORRECTION
 // Adaptation of http://alienryderflex.com/saturation.html by Darel Rex Finley
 static inline void change_saturation(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
@@ -149,13 +149,13 @@ static inline const uint8_t *get_mono_color(const unsigned int raw_color,
 
 static inline const uint8_t *get_color_data(const unsigned int raw_color,
                                             const uint8_t mono_palette
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                                             , const uint8_t *color_palette
 #endif
                                             )
 {
     return
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
       color_palette ?
       get_color(raw_color, color_palette) :
 #endif
@@ -171,7 +171,7 @@ void write_texture(uint8_t line,
                    bool priority,
                    bool x_flip,
                    uint8_t mono_palette
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                    , const uint8_t *color_palette,
                    bool bg_priority
 #endif
@@ -207,14 +207,14 @@ void write_texture(uint8_t line,
           if (transparent)
             {
               if (raw_color &&
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                   row_data[x_position] != PRIORITY_COLOR &&
 #endif
                   (priority ||
                    (!row_data[x_position])))
                 {
                   memcpy(texture + output_pixel_offset, get_color_data(raw_color, mono_palette
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                       , color_palette
 #endif
                   ), 3);
@@ -228,7 +228,7 @@ void write_texture(uint8_t line,
           else
             {
               memcpy(texture + output_pixel_offset, get_color_data(raw_color, mono_palette
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                   , color_palette
 #endif
               ), 3);
@@ -236,7 +236,7 @@ void write_texture(uint8_t line,
               if (row_data)
                 {
                   row_data[x_position] =
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                     bg_priority && raw_color ?
                     PRIORITY_COLOR :
 #endif
@@ -249,19 +249,19 @@ void write_texture(uint8_t line,
 
 static inline uint16_t get_tile_data(memory *mem,
                                      const uint16_t address
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                                      , const uint8_t tile_vram_bank_number
 #endif
                                      )
 {
   uint16_t tile_data = mem->video_ram
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
     [tile_vram_bank_number]
 #endif
     [address];
 
   tile_data += mem->video_ram
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
     [tile_vram_bank_number]
 #endif
     [address + 1] << 8;
@@ -289,7 +289,7 @@ static inline void process_background_tiles(memory *mem,
   const uint16_t tile_base_addr = tile_data_addr + (line_modulo * 2);
   uint16_t addr =
     tile_map_addr + (line_offset * 32) - 0x8000;
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   const uint16_t base_addr = addr;
   const uint8_t* color_palette = NULL;
   bool horizontal_flip = false;
@@ -299,7 +299,7 @@ static inline void process_background_tiles(memory *mem,
 #endif
 
   const uint8_t mono_palette =
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
     mem->cgb_mode ? 0 :
 #endif
     mmu_read_byte(mem, MEM_BGP_ADDR);
@@ -307,7 +307,7 @@ static inline void process_background_tiles(memory *mem,
   for(tile_pos=0; tile_pos<32; ++tile_pos)
     {
       uint8_t id = mem->video_ram
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
         [MEM_CHARACTER_CODE_BANK_INDEX]
 #endif
         [addr++];
@@ -316,7 +316,7 @@ static inline void process_background_tiles(memory *mem,
       if (tile_data_addr == MEM_TILE_ADDR_1)
         id += 128;
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
       if (mem->cgb_mode)
         {
           const uint8_t bg_map = mem->video_ram[MEM_ATTRIBUTES_CODE_BANK_INDEX][base_addr + tile_pos];
@@ -336,7 +336,7 @@ static inline void process_background_tiles(memory *mem,
 
       tile_data = get_tile_data(mem,
         tile_base_addr_final
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
           + vertical_flip_data_offset
         , tile_vram_bank_number
 #endif
@@ -349,13 +349,13 @@ static inline void process_background_tiles(memory *mem,
                     row_data,
                     false,
                     true,
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                     horizontal_flip,
 #else
                     false,
 #endif
                     mono_palette
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                     , color_palette,
                     priority
 #endif
@@ -384,7 +384,7 @@ static inline void process_sprite_attributes(memory *mem,
   }sprite_attributes;
   // Read sprites back to front to get priority correct
   attribute_map_addr += number_of_sprites * sprite_attributes_len - 1;
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
   const uint8_t* color_palette = NULL;
   uint8_t tile_vram_bank_number = 0;
 #endif
@@ -413,7 +413,7 @@ static inline void process_sprite_attributes(memory *mem,
               const bool y_flip = sprite_attributes.flags & OBJ_Y_FLIP_FLAG;
               uint8_t sprite_line = (line - sprite_attributes.pos.y) % height;
 
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
               if (mem->cgb_mode)
                 {
                   const uint8_t palette_num = sprite_attributes.flags & PALETTE_NUM_MASK;
@@ -424,7 +424,7 @@ static inline void process_sprite_attributes(memory *mem,
                 {
 #endif
                   mono_palette = mmu_read_byte(mem, mono_palette_address);
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                 }
 #endif
 
@@ -439,7 +439,7 @@ static inline void process_sprite_attributes(memory *mem,
 
               tile_data = get_tile_data(mem,
                 tile_base_addr_final
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                 , tile_vram_bank_number
 #endif
               );
@@ -453,7 +453,7 @@ static inline void process_sprite_attributes(memory *mem,
                             priority,
                             x_flip,
                             mono_palette
-#ifdef EXPERIMENTAL_CGB
+#ifdef CGB
                             , color_palette,
                             false
 #endif
