@@ -502,29 +502,33 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
       if (lcdc & MEM_LCDC_BG_WINDOW_ENABLED_FLAG &&
           lcdc & MEM_LCDC_WINDOW_ENABLED_FLAG)
         {
-          const uint8_t window_line = mmu_read_byte(mem, MEM_WY_ADDR);
+          const uint8_t window_y = mmu_read_byte(mem, MEM_WY_ADDR);
 
-          if (line >= window_line)
+          if (line >= window_y && window_y < 144)
             {
-              const uint16_t tile_map_address =
-              lcdc & MEM_LCDC_WINDOW_TILEMAP_SELECT_FLAG ?
-              MEM_TILE_MAP_ADDR_2 :
-              MEM_TILE_MAP_ADDR_1;
+              const int16_t window_x = mmu_read_byte(mem, MEM_WX_ADDR);
 
-              const uint16_t tile_data_address =
-              lcdc & MEM_LCDC_TILEMAP_DATA_FLAG ?
-              MEM_TILE_ADDR_2 :
-              MEM_TILE_ADDR_1;
+              if (window_x < 167)
+                {
+                  const uint16_t tile_map_address =
+                    lcdc & MEM_LCDC_WINDOW_TILEMAP_SELECT_FLAG ?
+                    MEM_TILE_MAP_ADDR_2 :
+                    MEM_TILE_MAP_ADDR_1;
 
-              process_background_tiles(mem,
-                                       line,
-                                       256 - mmu_read_byte(mem, MEM_WY_ADDR),
-                                       tile_map_address,
-                                       tile_data_address,
-                                       (int16_t)mmu_read_byte(mem, MEM_WX_ADDR)
-                                       - 7,
-                                       g->locked_pixel_data,
-                                       row);
+                  const uint16_t tile_data_address =
+                    lcdc & MEM_LCDC_TILEMAP_DATA_FLAG ?
+                    MEM_TILE_ADDR_2 :
+                    MEM_TILE_ADDR_1;
+
+                  process_background_tiles(mem,
+                                           line,
+                                           256 - window_y,
+                                           tile_map_address,
+                                           tile_data_address,
+                                           256 + (window_x - 7),
+                                           g->locked_pixel_data,
+                                           row);
+                }
             }
         }
 
