@@ -32,6 +32,7 @@ public class MainActivity extends AppCompatActivity {
     final int readRequestCode = 124;
     final static String TAG = "Chester";
     static java.util.concurrent.atomic.AtomicBoolean paused;
+    static java.util.concurrent.atomic.AtomicBoolean destroyed;
 
     static ChesterView chesterView;
 
@@ -63,6 +64,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         paused = new java.util.concurrent.atomic.AtomicBoolean(true);
+        destroyed = new java.util.concurrent.atomic.AtomicBoolean(false);
 
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -95,6 +97,13 @@ public class MainActivity extends AppCompatActivity {
         super.onPause();
     }
 
+    @Override
+    protected void onDestroy() {
+        destroyed.set(true);
+        paused.set(true);
+        super.onDestroy();
+    }
+
     private void openGameSelector(final Context context)
     {
         File mPath = new File(Environment.getExternalStorageDirectory() + "//Download//");
@@ -111,7 +120,14 @@ public class MainActivity extends AppCompatActivity {
                             do {
                                 if (paused.get()) {
                                     saveChester();
-                                    try{ Thread.sleep(350); }catch(InterruptedException e){ }
+                                    if (destroyed.get()) {
+                                        ret = -1;
+                                    } else {
+                                        try {
+                                            Thread.sleep(350);
+                                        } catch (InterruptedException ignored) {
+                                        }
+                                    }
                                 } else {
                                     ret = runChester();
                                 }
@@ -157,7 +173,7 @@ public class MainActivity extends AppCompatActivity {
         byte[] imageBytes = new byte[bytes];
         buffer.get(imageBytes);
         synchronized (chesterView.getImageLock()) {
-            Bitmap bm = Bitmap.createBitmap(256, 160, Bitmap.Config.ARGB_8888);
+            Bitmap bm = Bitmap.createBitmap(256, 144, Bitmap.Config.ARGB_8888);
             bm.copyPixelsFromBuffer(ByteBuffer.wrap(imageBytes));
             chesterView.update(bm);
         }
@@ -299,5 +315,4 @@ public class MainActivity extends AppCompatActivity {
     public native void setKeyDown(boolean pressed);
     public native void setKeyLeft(boolean pressed);
     public native void setKeyRight(boolean pressed);
-
 }

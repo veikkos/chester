@@ -5,6 +5,7 @@
 #include <assert.h>
 
 static JavaVM *jvm;
+static const unsigned int buffer_size = 256*144*4;
 
 extern "C"
 {
@@ -52,7 +53,7 @@ static void delayCb(uint32_t ms)
 
 static bool initGpuCb(gpu* g)
 {
-    g->locked_pixel_data = malloc(256*160*4);
+    g->locked_pixel_data = malloc(buffer_size);
     return true;
 }
 
@@ -71,12 +72,12 @@ static bool lockTextureCb(gpu* g)
 static void renderCb(gpu* g)
 {
     JNIEnv *env;
-    jint rs = jvm->AttachCurrentThread(&env, NULL);
+    jvm->AttachCurrentThread(&env, NULL);
 
     jclass cls = env->FindClass("com/chester/chesterapp/MainActivity");
-    jmethodID methodid = env->GetStaticMethodID(cls, "renderCallback", "(Ljava/nio/ByteBuffer;)V");
-    jobject directByteBuffer = env->NewDirectByteBuffer(g->locked_pixel_data, 256*160*4);
-    env->CallStaticVoidMethod(cls, methodid, directByteBuffer);
+    jmethodID methodId = env->GetStaticMethodID(cls, "renderCallback", "(Ljava/nio/ByteBuffer;)V");
+    jobject directByteBuffer = env->NewDirectByteBuffer(g->locked_pixel_data, buffer_size);
+    env->CallStaticVoidMethod(cls, methodId, directByteBuffer);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -112,7 +113,7 @@ Java_com_chester_chesterapp_MainActivity_initChester(
     const bool ret = init(&gChester, nativeRomPath, nativeSavePath, NULL);
 
     env->ReleaseStringUTFChars(romPath, nativeRomPath);
-    env->ReleaseStringUTFChars(romPath, nativeSavePath);
+    env->ReleaseStringUTFChars(savePath, nativeSavePath);
 
     return static_cast<jboolean>(ret);
 }
