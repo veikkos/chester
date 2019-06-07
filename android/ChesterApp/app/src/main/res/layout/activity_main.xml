@@ -31,34 +31,35 @@
                 <Button
                     android:id="@+id/up"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="U"
-                    android:layout_toRightOf="@+id/left"/>
+                    android:layout_height="60dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_toRightOf="@+id/left"
+                    android:text="&#x2191;"
+                    style="@android:style/TextAppearance.Large" />
 
                 <Button
                     android:id="@+id/down"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="D"
+                    android:layout_height="60dp"
+                    android:text="&#x2193;"
+                    style="@android:style/TextAppearance.Large"
                     android:layout_below="@+id/left"
                     android:layout_toRightOf="@+id/left" />
 
                 <Button
                     android:id="@+id/left"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="L"
+                    android:layout_height="60dp"
+                    android:text="&#x2190;"
+                    style="@android:style/TextAppearance.Large"
                     android:layout_below="@+id/up" />
 
                 <Button
                     android:id="@+id/right"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:text="R"
+                    android:layout_height="60dp"
+                    android:text="&#x2192;"
+                    style="@android:style/TextAppearance.Large"
                     android:layout_below="@+id/up"
                     android:layout_toRightOf="@+id/up" />
             </RelativeLayout>
@@ -72,15 +73,15 @@
                 <Button
                     android:id="@+id/a"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_height="60dp"
+                    android:layout_marginTop="16dp"
                     android:text="A"
                     android:layout_alignParentRight="true"/>
 
                 <Button
                     android:id="@+id/b"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    android:layout_height="60dp"
                     android:layout_marginTop="14dp"
                     android:text="B"
                     android:layout_below="@+id/a"
