@@ -18,6 +18,7 @@ public class ChesterView extends View {
         super(context, attrs, defStyleAttr);
     }
 
+    @SuppressWarnings("unused")
     public ChesterView(Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
     }

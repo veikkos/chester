@@ -1,6 +1,7 @@
 package com.chester.chesterapp;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -139,6 +140,7 @@ public class MainActivity extends AppCompatActivity {
                                     ret = runChester();
                                 }
                             } while(ret == 0);
+                            uninitChester();
                         }
                     }.start();
                 }
@@ -175,6 +177,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressWarnings("unused")
     public static void renderCallback(ByteBuffer buffer){
         int bytes = buffer.remaining();
         byte[] imageBytes = new byte[bytes];
@@ -186,6 +189,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     public void buttonCallbacks() {
         Button a = findViewById(R.id.a);
         a.setOnTouchListener(new View.OnTouchListener() {
@@ -309,6 +313,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public native boolean initChester(String rom, String savePath);
+    public native void uninitChester();
 
     public native int runChester();
 
