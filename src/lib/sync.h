@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-typedef int32_t (*get_ticks_cb)(void);
+typedef uint32_t (*get_ticks_cb)(void);
 typedef void (*delay_cb)(uint32_t);
 
 typedef struct sync_timer_s

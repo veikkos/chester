@@ -19,7 +19,7 @@ void sync_time(sync_timer *s, const unsigned int ticks, get_ticks_cb t_cb, delay
     {
       int32_t delaytime = s->waittime - (t_cb() - s->framestarttime);
       if(delaytime > 0)
-        d_cb(delaytime);
+        d_cb((uint32_t)delaytime);
 
 #ifndef NDEBUG
       if (++(s->timing_debug_ticks) > 10)

@@ -39,11 +39,11 @@ static int keysCb(keys* k)
             button_up || button_down || button_left || button_right;
 }
 
-static int32_t ticksCb()
+static uint32_t ticksCb()
 {
     struct timespec res;
     clock_gettime(CLOCK_MONOTONIC, &res);
-    return static_cast<int32_t>(1000.0 * res.tv_sec + (double) res.tv_nsec / 1e6);
+    return static_cast<uint32_t>(1000.0 * res.tv_sec + (double) res.tv_nsec / 1e6);
 }
 
 static void delayCb(uint32_t ms)
@@ -92,7 +92,6 @@ Java_com_chester_chesterapp_MainActivity_initChester(
     register_delay_callback(&gChester, &delayCb);
     register_keys_callback(&gChester, &keysCb);
     register_get_ticks_callback(&gChester, &ticksCb);
-    register_delay_callback(&gChester, &delayCb);
     register_gpu_init_callback(&gChester, &initGpuCb);
     register_gpu_uninit_callback(&gChester, &uninitGpuCb);
     register_gpu_lock_texture_callback(&gChester, &lockTextureCb);
