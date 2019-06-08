@@ -228,14 +228,14 @@ int keys_update(keys *k)
   return ret;
 }
 
-int32_t get_ticks(void)
+uint32_t get_ticks(void)
 {
   return SDL_GetTicks();
 }
 
 void delay(uint32_t ms)
 {
-  SDL_Delay((Uint32)ms);
+  SDL_Delay(ms);
 }
 
 int main(int argc, char **argv)
