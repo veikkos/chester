@@ -16,6 +16,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.Toast;
 
@@ -33,8 +34,8 @@ public class MainActivity extends AppCompatActivity {
     final static String TAG = "Chester";
     static java.util.concurrent.atomic.AtomicBoolean paused;
     static java.util.concurrent.atomic.AtomicBoolean destroyed;
-
     static ChesterView chesterView;
+    int screenWidth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
         chesterView = findViewById(R.id.chesterView);
         chesterView.setScreenWidth(size.x);
 
+        screenWidth = size.x;
+
         buttonCallbacks();
     }
 
@@ -89,6 +92,10 @@ public class MainActivity extends AppCompatActivity {
         if (bar != null) {
             bar.hide();
         }
+
+        ViewGroup.LayoutParams params = chesterView.getLayoutParams();
+        params.height = screenWidth * 144 / 160;
+        chesterView.requestLayout();
     }
 
     @Override

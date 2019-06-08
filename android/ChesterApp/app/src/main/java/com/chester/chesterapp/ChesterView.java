@@ -26,10 +26,10 @@ public class ChesterView extends View {
 
     final static Object imageLock = new Object();
     private Bitmap image;
-    private int width;
+    private float scale;
 
     public void setScreenWidth(int width) {
-        this.width = width;
+        this.scale = (float)width / 160;
     }
 
     @Override
@@ -37,7 +37,6 @@ public class ChesterView extends View {
         synchronized (imageLock) {
             if (image != null) {
                 canvas.save();
-                float scale = (float)width / 160;
                 canvas.scale(scale, scale);
                 canvas.drawBitmap(image, 0, 0, null);
                 canvas.restore();
