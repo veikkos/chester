@@ -5,6 +5,8 @@
 #include <assert.h>
 
 static JavaVM *jvm;
+static jclass mainActivityClass = NULL;
+static jmethodID renderCallbackMethodId;
 static const unsigned int buffer_size = 256*144*4;
 
 extern "C"
@@ -74,10 +76,8 @@ static void renderCb(gpu* g)
     JNIEnv *env;
     jvm->AttachCurrentThread(&env, NULL);
 
-    jclass cls = env->FindClass("com/chester/chesterapp/MainActivity");
-    jmethodID methodId = env->GetStaticMethodID(cls, "renderCallback", "(Ljava/nio/ByteBuffer;)V");
     jobject directByteBuffer = env->NewDirectByteBuffer(g->locked_pixel_data, buffer_size);
-    env->CallStaticVoidMethod(cls, methodId, directByteBuffer);
+    env->CallStaticVoidMethod(mainActivityClass, renderCallbackMethodId, directByteBuffer);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -114,6 +114,10 @@ Java_com_chester_chesterapp_MainActivity_initChester(
     env->ReleaseStringUTFChars(romPath, nativeRomPath);
     env->ReleaseStringUTFChars(savePath, nativeSavePath);
 
+    jclass cls = env->FindClass("com/chester/chesterapp/MainActivity");
+    renderCallbackMethodId = env->GetStaticMethodID(cls, "renderCallback", "(Ljava/nio/ByteBuffer;)V");
+    mainActivityClass = (jclass)env->NewGlobalRef(cls);
+
     return static_cast<jboolean>(ret);
 }
 
@@ -122,6 +126,11 @@ Java_com_chester_chesterapp_MainActivity_uninitChester(
         JNIEnv *env,
         jobject /* this */) {
     uninit(&gChester);
+
+    if (mainActivityClass) {
+        env->DeleteGlobalRef(mainActivityClass);
+        mainActivityClass = NULL;
+    }
 }
 
 JNIEXPORT void JNICALL
