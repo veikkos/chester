@@ -5,9 +5,16 @@
 #include <signal.h>
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 bool done = false;
+#define DELAY_TABLE_SIZE 100
+unsigned int delay_table_pointer = 0;
+unsigned int delay_table[DELAY_TABLE_SIZE];
+unsigned int max_wait_time;
+float load = 0;
+const char title[] = "ChesterApp";
 
 #if defined(WIN32)
 #if defined(NDEBUG)
@@ -40,7 +47,7 @@ bool init_graphics(gpu *g)
 
   SDL_Init(SDL_INIT_VIDEO);
 
-  sdl_graphics_ptr->window = SDL_CreateWindow("ChesterApp",
+  sdl_graphics_ptr->window = SDL_CreateWindow(title,
                                               SDL_WINDOWPOS_UNDEFINED,
                                               SDL_WINDOWPOS_UNDEFINED,
                                               X_RES * WINDOW_SCALE, Y_RES * WINDOW_SCALE,
@@ -122,7 +129,7 @@ bool lock_texture(gpu *g)
 
 void render(gpu *g)
 {
-    if (g->app_data)
+  if (g->app_data)
   {
     sdl_graphics *sdl_graphics_ptr = (sdl_graphics*)g->app_data;
 
@@ -141,6 +148,15 @@ void render(gpu *g)
     SDL_RenderCopy(sdl_graphics_ptr->renderer,
                    sdl_graphics_ptr->texture, &screen, NULL);
     SDL_RenderPresent(sdl_graphics_ptr->renderer);
+
+    if (load)
+      {
+        char buf[32];
+        sprintf(buf, "%s - (CPU %.0f%%)", title, load);
+        load = 0;
+
+        SDL_SetWindowTitle(sdl_graphics_ptr->window, buf);
+      }
   }
 }
 
@@ -233,9 +249,31 @@ uint32_t get_ticks(void)
   return SDL_GetTicks();
 }
 
+void update_load_stats(uint32_t ms)
+{
+  delay_table[delay_table_pointer] = ms;
+
+  if (++delay_table_pointer >= DELAY_TABLE_SIZE)
+    {
+      delay_table_pointer = 0;
+
+      unsigned int total_wait = 0;
+      size_t i;
+
+      for (i = 0; i < DELAY_TABLE_SIZE; ++i)
+        {
+          total_wait += delay_table[i];
+        }
+
+      load = (1 - ((float)total_wait / max_wait_time)) * 100;
+    }
+}
+
 void delay(uint32_t ms)
 {
   SDL_Delay(ms);
+
+  update_load_stats(ms);
 }
 
 int main(int argc, char **argv)
@@ -262,6 +300,8 @@ int main(int argc, char **argv)
     {
       return 2;
     }
+
+  max_wait_time = chester.s.waittime * DELAY_TABLE_SIZE;
 
 #ifndef WIN32
   signal(SIGINT, sig_handler);
