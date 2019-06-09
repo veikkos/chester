@@ -9,9 +9,9 @@
 #include <stdlib.h>
 
 bool done = false;
-#define DELAY_TABLE_SIZE 100
-unsigned int delay_table_pointer = 0;
-unsigned int delay_table[DELAY_TABLE_SIZE];
+#define DELAY_COUNT_TIMES 100
+unsigned int delay_counter = 0;
+unsigned int delay_sum = 0;
 unsigned int max_wait_time;
 float load = 0;
 const char title[] = "ChesterApp";
@@ -251,21 +251,13 @@ uint32_t get_ticks(void)
 
 void update_load_stats(uint32_t ms)
 {
-  delay_table[delay_table_pointer] = ms;
+  delay_sum += ms;
 
-  if (++delay_table_pointer >= DELAY_TABLE_SIZE)
+  if (++delay_counter >= DELAY_COUNT_TIMES)
     {
-      delay_table_pointer = 0;
-
-      unsigned int total_wait = 0;
-      size_t i;
-
-      for (i = 0; i < DELAY_TABLE_SIZE; ++i)
-        {
-          total_wait += delay_table[i];
-        }
-
-      load = (1 - ((float)total_wait / max_wait_time)) * 100;
+      delay_counter = 0;
+      load = (1 - ((float)delay_sum / max_wait_time)) * 100;
+      delay_sum = 0;
     }
 }
 
@@ -301,7 +293,7 @@ int main(int argc, char **argv)
       return 2;
     }
 
-  max_wait_time = chester.s.waittime * DELAY_TABLE_SIZE;
+  max_wait_time = chester.s.waittime * DELAY_COUNT_TIMES;
 
 #ifndef WIN32
   signal(SIGINT, sig_handler);
