@@ -90,7 +90,9 @@ public class FileDialog {
                 }
             };
             String[] fileList1 = path.list(filter);
-            Collections.addAll(r, fileList1);
+            if (fileList1 != null) {
+                Collections.addAll(r, fileList1);
+            }
         }
         mFileList = r.toArray(new String[]{});
     }
