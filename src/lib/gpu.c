@@ -405,9 +405,6 @@ static inline void process_sprite_attributes(memory *mem,
               line < (sprite_attributes.pos.y + height))
             {
               const bool priority = !(sprite_attributes.flags & OBJ_PRIORITY_FLAG);
-              const uint16_t mono_palette_address =
-                sprite_attributes.flags & OBJ_PALETTE_FLAG ?
-                MEM_OBP1_ADDR : MEM_OBP0_ADDR;
               uint8_t mono_palette = 0;
               const bool x_flip = sprite_attributes.flags & OBJ_X_FLIP_FLAG;
               const bool y_flip = sprite_attributes.flags & OBJ_Y_FLIP_FLAG;
@@ -423,10 +420,18 @@ static inline void process_sprite_attributes(memory *mem,
               else
                 {
 #endif
+                  const uint16_t mono_palette_address =
+                    sprite_attributes.flags & OBJ_PALETTE_FLAG ?
+                    MEM_OBP1_ADDR : MEM_OBP0_ADDR;
                   mono_palette = mmu_read_byte(mem, mono_palette_address);
 #ifdef CGB
                 }
 #endif
+
+              if (high)
+                {
+                  sprite_attributes.pattern &= ~0x01;
+                }
 
               if (y_flip)
                 {
@@ -599,6 +604,12 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
         {
           g->clock.t = 0;
 
+#ifdef CGB
+          if (mem->cgb_mode)
+            {
+              mmu_hblank_dma(mem);
+            }
+#endif
           scanline(g, mem, line, l_cb);
 
           isr_set_lcdc_isr_if_enabled(mem, MEM_LCDC_HBLANK_ISR_ENABLED_FLAG);

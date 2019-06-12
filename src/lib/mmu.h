@@ -69,6 +69,13 @@ struct memory_s {
 
 #ifdef CGB
   bool cgb_mode;
+
+  struct {
+    struct {
+      uint16_t src;
+      uint16_t dst;
+    }h_blank;
+  }dma;
 #endif
 };
 
@@ -81,8 +88,6 @@ typedef struct memory_s memory;
 
 #define MEM_SPRITE_ATTRIBUTE_TABLE 0xFE00
 #define MEM_SPRITE_ADDR 0x8000
-
-#define MEM_HIGH_EMPTY_START_ADDR 0xFF4C
 
 #define MEM_VBLANK_ISR_ADDR 0x0040
 #define MEM_LCD_ISR_ADDR 0x0048
@@ -107,6 +112,7 @@ typedef struct memory_s memory;
 #define MEM_OBP1_ADDR 0xFF49
 #define MEM_WY_ADDR 0xFF4A
 #define MEM_WX_ADDR 0xFF4B
+#define MEM_HIGH_EMPTY_START_ADDR 0xFF4C
 #define MEM_KEY1_ADDR 0xFF4D
 #define MEM_VBK_ADDR 0xFF4F
 #define MEM_HDMA1_ADDR 0xFF51
@@ -157,6 +163,11 @@ typedef struct memory_s memory;
 
 #define MEM_VBK_BANK_MASK 0x07
 
+#define MEM_HDMA5_MODE_BIT 0x80
+#define MEM_HDMA5_LENGTH_MASK 0x7F
+
+#define MEM_HDMA_HBLANK_LENGTH 0x10
+
 void mmu_reset(memory *mem);
 
 #ifndef NDEBUG
@@ -178,5 +189,9 @@ uint16_t mmu_read_word(memory *mem, const uint16_t address);
 void mmu_write_byte(memory *mem, const uint16_t address, const uint8_t input);
 
 void mmu_write_word(memory *mem, const uint16_t address, const uint16_t input);
+
+#ifdef CGB
+void mmu_hblank_dma(memory *mem);
+#endif
 
 #endif // MMU_H

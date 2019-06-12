@@ -21,6 +21,10 @@ void mmu_reset(memory *mem)
 #if CGB
   memset(mem->palette, 0, sizeof mem->palette);
   mem->cgb_mode = false;
+
+  mem->dma.h_blank.src = 0;
+  mem->dma.h_blank.dst = 0;
+  mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = 0xFF;
 #endif
 
   mem->rom.data = NULL;
@@ -401,24 +405,35 @@ void mmu_write_byte(memory *mem,
               break;
             case MEM_HDMA5_ADDR:
               {
-                const uint16_t length = (uint16_t)((input & 0x7F) + 1) * 0x10;
+                if (!(mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] & MEM_HDMA5_MODE_BIT))
+                  {
+                    gb_log(WARNING, "Wrote to HDMA5 while DMA active");
+                    return;
+                  }
+
                 const uint16_t src = (mem->high_empty[MEM_HDMA1_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) +
                   (mem->high_empty[MEM_HDMA2_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
                 const uint16_t dst = ((mem->high_empty[MEM_HDMA3_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) & 0x1F00) +
                   (mem->high_empty[MEM_HDMA4_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
 
-                if (input & 0x80)
+                if (input & MEM_HDMA5_MODE_BIT)
                   {
-                    gb_log(WARNING, "VRAM H-Blank DMA not supported");
+                    mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & MEM_HDMA5_LENGTH_MASK;
+                    mem->dma.h_blank.dst = dst;
+                    mem->dma.h_blank.src = src;
                   }
                 else
                   {
+                    const uint16_t length = (uint16_t)((input & MEM_HDMA5_LENGTH_MASK) + 1) * MEM_HDMA_HBLANK_LENGTH;
+
                     uint16_t i;
                     const uint8_t bank = get_video_ram_bank(mem);
                     for (i = 0; i < length; ++i)
                       {
                         mem->video_ram[bank][dst + i] = mmu_read_byte(mem, src + i);
                       }
+
+                    mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = 0xFF;
                   }
                 break;
               }
@@ -563,3 +578,21 @@ void mmu_write_word(memory *mem, const uint16_t address, const uint16_t word)
   mmu_write_byte(mem, address, (const uint8_t)word);
   mmu_write_byte(mem, address + 1, word >> 8);
 }
+
+#ifdef CGB
+void mmu_hblank_dma(memory *mem)
+{
+  if (!(mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] & MEM_HDMA5_MODE_BIT))
+    {
+      const uint8_t bank = get_video_ram_bank(mem);
+      uint8_t i;
+
+      for (i = 0; i < MEM_HDMA_HBLANK_LENGTH; ++i)
+        {
+          mem->video_ram[bank][mem->dma.h_blank.dst++] = mmu_read_byte(mem, mem->dma.h_blank.src++);
+        }
+
+      mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] -= 1;
+    }
+}
+#endif
