@@ -159,9 +159,17 @@ void uninit(chester *chester)
 {
   save_if_needed(chester);
 
-  free(chester->bootloader);
+  if (chester->bootloader)
+    {
+      free(chester->bootloader);
+      chester->bootloader = NULL;
+    }
 
-  free(chester->rom);
+  if (chester->rom)
+    {
+      free(chester->rom);
+      chester->rom = NULL;
+    }
 
   chester->gpu_uninit_cb(&chester->g);
 

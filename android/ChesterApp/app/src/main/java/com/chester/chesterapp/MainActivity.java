@@ -19,6 +19,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageButton;
 import android.widget.Toast;
 
 import java.io.File;
@@ -37,7 +38,9 @@ public class MainActivity extends AppCompatActivity {
     static java.util.concurrent.atomic.AtomicBoolean destroyed;
     static ChesterView chesterView;
     int screenWidth;
+    Thread chesterThread;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,6 +81,18 @@ public class MainActivity extends AppCompatActivity {
         screenWidth = size.x;
 
         buttonCallbacks();
+
+        final Context context = this;
+        ImageButton settings = findViewById(R.id.settings);
+        settings.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    openGameSelector(context);
+                }
+                return true;
+            }
+        });
     }
 
     @Override
@@ -85,9 +100,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         paused.set(false);
 
-        View decorView = getWindow().getDecorView();
-        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
-        decorView.setSystemUiVisibility(uiOptions);
+        setFullScreen();
 
         ActionBar bar = getSupportActionBar();
         if (bar != null) {
@@ -107,9 +120,28 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        destroyed.set(true);
-        paused.set(true);
+        stopChesterIfRunning();
         super.onDestroy();
+    }
+
+    private void stopChesterIfRunning() {
+        if(chesterThread != null) {
+            paused.set(true);
+            destroyed.set(true);
+            try {
+                chesterThread.join();
+            } catch (InterruptedException ignored) {}
+            chesterThread = null;
+            uninitChester();
+            paused.set(false);
+            destroyed.set(false);
+        }
+    }
+
+    void setFullScreen() {
+        View decorView = getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     private void openGameSelector(final Context context)
@@ -118,10 +150,12 @@ public class MainActivity extends AppCompatActivity {
         FileDialog fileDialog = new FileDialog(this, mPath, ".gb");
         fileDialog.addFileListener(new FileDialog.FileSelectedListener() {
             public void fileSelected(File file) {
+                stopChesterIfRunning();
+
                 Log.d(getClass().getName(), "selected file " + file.toString());
                 if (initChester(file.getAbsolutePath(), getFilesDir().getAbsolutePath() + "/"))
                 {
-                    new Thread(){
+                    chesterThread = new Thread(){
                         public void run(){
                             Log.i(TAG, "Initialized Chester");
                             int ret = 0;
@@ -140,9 +174,9 @@ public class MainActivity extends AppCompatActivity {
                                     ret = runChester();
                                 }
                             } while(ret == 0);
-                            uninitChester();
                         }
-                    }.start();
+                    };
+                    chesterThread.start();
                 }
                 else
                 {
@@ -152,6 +186,8 @@ public class MainActivity extends AppCompatActivity {
                     Toast toast = Toast.makeText(context, text, duration);
                     toast.show();
                 }
+
+                setFullScreen();
             }
         });
         fileDialog.showDialog();
