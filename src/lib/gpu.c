@@ -1,6 +1,7 @@
 #include "gpu.h"
 #include "interrupts.h"
 #include "logger.h"
+#include "memory_inline.h"
 
 #include <stdbool.h>
 #include <string.h>
@@ -302,7 +303,7 @@ static inline void process_background_tiles(memory *mem,
 #ifdef CGB
     mem->cgb_mode ? 0 :
 #endif
-    mmu_read_byte(mem, MEM_BGP_ADDR);
+    read_io_byte(mem, MEM_BGP_ADDR);
 
   for(tile_pos=0; tile_pos<32; ++tile_pos)
     {
@@ -391,10 +392,10 @@ static inline void process_sprite_attributes(memory *mem,
 
   for(i=0; i<number_of_sprites; ++i)
     {
-      sprite_attributes.flags = mmu_read_byte(mem, attribute_map_addr--);
-      sprite_attributes.pattern = mmu_read_byte(mem, attribute_map_addr--);
-      sprite_attributes.pos.x = mmu_read_byte(mem, attribute_map_addr--);
-      sprite_attributes.pos.y = mmu_read_byte(mem, attribute_map_addr--);
+      sprite_attributes.flags = read_oam_byte(mem, attribute_map_addr--);
+      sprite_attributes.pattern = read_oam_byte(mem, attribute_map_addr--);
+      sprite_attributes.pos.x = read_oam_byte(mem, attribute_map_addr--);
+      sprite_attributes.pos.y = read_oam_byte(mem, attribute_map_addr--);
 
       if (sprite_attributes.pos.x || sprite_attributes.pos.y)
         {
@@ -423,7 +424,7 @@ static inline void process_sprite_attributes(memory *mem,
                   const uint16_t mono_palette_address =
                     sprite_attributes.flags & OBJ_PALETTE_FLAG ?
                     MEM_OBP1_ADDR : MEM_OBP0_ADDR;
-                  mono_palette = mmu_read_byte(mem, mono_palette_address);
+                  mono_palette = read_io_byte(mem, mono_palette_address);
 #ifdef CGB
                 }
 #endif
@@ -477,7 +478,7 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
 
   if (g->locked_pixel_data)
     {
-      const uint8_t lcdc = mmu_read_byte(mem, MEM_LCDC_ADDR);
+      const uint8_t lcdc = read_io_byte(mem, MEM_LCDC_ADDR);
       uint8_t row[160];
       memset(row, 0, sizeof(row));
 
@@ -495,10 +496,10 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
 
           process_background_tiles(mem,
                                    line,
-                                   mmu_read_byte(mem, MEM_SCY_ADDR),
+                                   read_io_byte(mem, MEM_SCY_ADDR),
                                    tile_map_address,
                                    tile_data_address,
-                                   (int16_t)mmu_read_byte(mem, MEM_SCX_ADDR) *
+                                   (int16_t)read_io_byte(mem, MEM_SCX_ADDR) *
                                    -1,
                                    g->locked_pixel_data,
                                    row);
@@ -507,11 +508,11 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
       if (lcdc & MEM_LCDC_BG_WINDOW_ENABLED_FLAG &&
           lcdc & MEM_LCDC_WINDOW_ENABLED_FLAG)
         {
-          const uint8_t window_y = mmu_read_byte(mem, MEM_WY_ADDR);
+          const uint8_t window_y = read_io_byte(mem, MEM_WY_ADDR);
 
           if (line >= window_y && window_y < 144)
             {
-              const int16_t window_x = mmu_read_byte(mem, MEM_WX_ADDR);
+              const int16_t window_x = read_io_byte(mem, MEM_WX_ADDR);
 
               if (window_x < 167)
                 {
@@ -550,19 +551,19 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
     }
 }
 
-static state get_mode(memory *mem)
+static inline state get_mode(memory *mem)
 {
   // Optimize a bit by not reading through mmu_read_byte
-  const uint8_t stat = mem->io_registers[MEM_LCD_STAT & 0x00FF];
+  const uint8_t stat = read_io_byte(mem, MEM_LCD_STAT);
   return (state)(stat & LCD_STAT_MODE_MASK);
 }
 
 static void set_mode(memory *mem, const state mode)
 {
-  uint8_t stat = mmu_read_byte(mem, MEM_LCD_STAT);
+  uint8_t stat = read_io_byte(mem, MEM_LCD_STAT);
   stat &= ~LCD_STAT_MODE_MASK;
   stat |= mode;
-  mem->io_registers[MEM_LCD_STAT & 0x00FF] = stat;
+  write_io_byte(mem, MEM_LCD_STAT, stat);
 }
 
 int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_lock_texture_cb l_cb)
@@ -577,13 +578,13 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
       set_mode(mem, HBLANK);
     }
 
-  const uint8_t lcdc = mmu_read_byte(mem, MEM_LCDC_ADDR);
+  const uint8_t lcdc = read_io_byte(mem, MEM_LCDC_ADDR);
   if (!(lcdc & MEM_LCDC_SCREEN_ENABLED_FLAG))
     return 0;
 
   g->clock.t += last_t;
 
-  uint8_t line = mmu_read_byte(mem, MEM_LY_ADDR);
+  uint8_t line = read_io_byte(mem, MEM_LY_ADDR);
 
   switch (get_mode(mem))
     {
@@ -643,8 +644,8 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
               gb_log (VERBOSE, "GPU OAM");
             }
 
-          mem->io_registers[MEM_LY_ADDR & 0x00FF] = line;
-          isr_compare_ly_lyc(mem, line, mmu_read_byte(mem, MEM_LYC_ADDR));
+          write_io_byte(mem, MEM_LY_ADDR, line);
+          isr_compare_ly_lyc(mem, line, read_io_byte(mem, MEM_LYC_ADDR));
         }
       break;
     case VBLANK:
@@ -665,8 +666,8 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
               gb_log (VERBOSE, "GPU RENDER - OAM");
             }
 
-          mem->io_registers[MEM_LY_ADDR & 0x00FF] = line;
-          isr_compare_ly_lyc(mem, line, mmu_read_byte(mem, MEM_LYC_ADDR));
+          write_io_byte(mem, MEM_LY_ADDR, line);
+          isr_compare_ly_lyc(mem, line, read_io_byte(mem, MEM_LYC_ADDR));
         }
       break;
     }
