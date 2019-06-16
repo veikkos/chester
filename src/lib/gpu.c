@@ -163,8 +163,8 @@ static inline const uint8_t *get_color_data(const unsigned int raw_color,
       get_mono_color(raw_color, mono_palette);
 }
 
-void write_texture(uint8_t line,
-                   int16_t x,
+void write_texture(uint8_t y,
+                   uint8_t x,
                    uint16_t raw_tile_data,
                    uint8_t *texture,
                    uint8_t *row_data,
@@ -178,21 +178,14 @@ void write_texture(uint8_t line,
 #endif
                    )
 {
+  static const unsigned int per_line_offset = 256 * 4;
+  const unsigned int line_offset = per_line_offset * y;
   int i;
 
   for(i = 0; i < 8; ++i)
     {
-      const unsigned int bit_offset = x_flip ? i : (7 - i);
-      int16_t x_position = x + bit_offset;
-
-      if (x_position < 0)
-        {
-          x_position += 256;
-        }
-      else if (x_position >= 256)
-        {
-          x_position -= 256;
-        }
+      const uint8_t bit_offset = x_flip ? i : (7 - i);
+      const uint8_t x_position = x + bit_offset;
 
       if (x_position < 160)
         {
@@ -200,8 +193,6 @@ void write_texture(uint8_t line,
           const unsigned int raw_color_2 = (raw_tile_data >> (i + 7)) & 0x0002;
           const unsigned int raw_color = raw_color_1 + raw_color_2;
 
-          static const unsigned int per_line_offset = 256 * 4;
-          const unsigned int line_offset = per_line_offset * line;
           const unsigned int output_pixel_offset =
             line_offset + (x_position * 4);
 
@@ -344,7 +335,7 @@ static inline void process_background_tiles(memory *mem,
       );
 
       write_texture(line,
-                    (uint16_t)(tile_pos * 8 + offset),
+                    (uint8_t)(tile_pos * 8 + offset),
                     tile_data,
                     output,
                     row_data,
@@ -372,7 +363,7 @@ static inline void process_sprite_attributes(memory *mem,
                                              uint8_t *output,
                                              uint8_t *row_data)
 {
-  const int number_of_sprites = 40;
+  static const int number_of_sprites = 40;
   const unsigned int sprite_attributes_len = 4;
   int i;
   uint16_t tile_data;
@@ -451,7 +442,7 @@ static inline void process_sprite_attributes(memory *mem,
               );
 
               write_texture(line,
-                            sprite_attributes.pos.x,
+                            (uint8_t)sprite_attributes.pos.x,
                             tile_data,
                             output,
                             row_data,
