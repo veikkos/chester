@@ -5,16 +5,9 @@
 #include <signal.h>
 
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 bool done = false;
-#define DELAY_COUNT_TIMES 100
-unsigned int delay_counter = 0;
-unsigned int delay_sum = 0;
-unsigned int max_wait_time;
-float load = 0;
-const char title[] = "ChesterApp";
 
 #if defined(WIN32)
 #if defined(NDEBUG)
@@ -47,7 +40,7 @@ bool init_graphics(gpu *g)
 
   SDL_Init(SDL_INIT_VIDEO);
 
-  sdl_graphics_ptr->window = SDL_CreateWindow(title,
+  sdl_graphics_ptr->window = SDL_CreateWindow("ChesterApp",
                                               SDL_WINDOWPOS_UNDEFINED,
                                               SDL_WINDOWPOS_UNDEFINED,
                                               X_RES * WINDOW_SCALE, Y_RES * WINDOW_SCALE,
@@ -129,7 +122,7 @@ bool lock_texture(gpu *g)
 
 void render(gpu *g)
 {
-  if (g->app_data)
+    if (g->app_data)
   {
     sdl_graphics *sdl_graphics_ptr = (sdl_graphics*)g->app_data;
 
@@ -148,15 +141,6 @@ void render(gpu *g)
     SDL_RenderCopy(sdl_graphics_ptr->renderer,
                    sdl_graphics_ptr->texture, &screen, NULL);
     SDL_RenderPresent(sdl_graphics_ptr->renderer);
-
-    if (load)
-      {
-        char buf[32];
-        sprintf(buf, "%s - (CPU %.0f%%)", title, load);
-        load = 0;
-
-        SDL_SetWindowTitle(sdl_graphics_ptr->window, buf);
-      }
   }
 }
 
@@ -249,23 +233,9 @@ uint32_t get_ticks(void)
   return SDL_GetTicks();
 }
 
-void update_load_stats(uint32_t ms)
-{
-  delay_sum += ms;
-
-  if (++delay_counter >= DELAY_COUNT_TIMES)
-    {
-      delay_counter = 0;
-      load = (1 - ((float)delay_sum / max_wait_time)) * 100;
-      delay_sum = 0;
-    }
-}
-
 void delay(uint32_t ms)
 {
   SDL_Delay(ms);
-
-  update_load_stats(ms);
 }
 
 int main(int argc, char **argv)
@@ -292,8 +262,6 @@ int main(int argc, char **argv)
     {
       return 2;
     }
-
-  max_wait_time = chester.s.waittime * DELAY_COUNT_TIMES;
 
 #ifndef WIN32
   signal(SIGINT, sig_handler);
