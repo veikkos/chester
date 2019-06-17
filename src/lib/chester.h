@@ -16,7 +16,7 @@ struct chester_s {
   int keys_ticks;
   unsigned int save_timer;
   char* save_game_file;
-  bool save_supported;
+  char* rtc_file;
 
   // callbacks
   keys_cb k_cb;
@@ -46,7 +46,7 @@ void register_gpu_render_callback(chester *chester, gpu_render_cb cb);
 
 void save_if_needed(chester *chester);
 
-bool init(chester *chester, const char* rom, const char* save_path, const char* bootloader);
+bool init(chester *chester, const char* rom, const char* data_path, const char* bootloader);
 
 void uninit(chester *chester);
 

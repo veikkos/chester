@@ -73,6 +73,8 @@ void mmu_reset(memory *mem)
 #if CGB
   mmu_write_byte(mem, MEM_SVBK_ADDR, 0x01);
 #endif
+
+  memset(&mem->rtc, 0, sizeof mem->rtc);
 }
 
 #ifndef NDEBUG
@@ -236,6 +238,14 @@ void mmu_write_byte(memory *mem,
     case 0x5000:
       if (mem->banks.mode || (mem->rom.type & MBC_TYPE_MASK) == MBC5)
         {
+          if (mem->rom.type & MBC_RTC_BIT && input >= 0x08 && input <= 0x0C)
+            {
+              mem->rtc.active_register = input;
+              break;
+            }
+
+          mem->rtc.active_register = 0;
+
           const uint8_t mask = (mem->rom.type & MBC_TYPE_MASK) == MBC5 ? 0x0F : 0x03;
           mem->banks.ram.selected = input & mask;
           gb_log(VERBOSE, "Selected RAM bank %d", mem->banks.ram.selected);
@@ -494,7 +504,14 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
         }
       else
         {
-          return mem->banks.ram.data[mem->banks.ram.selected][address - 0xA000];
+          if (mem->rtc.active_register)
+            {
+              return 9;
+            }
+          else
+            {
+              return mem->banks.ram.data[mem->banks.ram.selected][address - 0xA000];
+            }
         }
       break;
     case 0xC000:

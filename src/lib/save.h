@@ -7,4 +7,8 @@ void save_game(char* file_name, memory *mem);
 
 void load_game(char* file_name, memory *mem);
 
+void save_rtc(char* file_name, memory *mem);
+
+void load_rtc(char* file_name, memory *mem);
+
 #endif // SAVE_H_INCLUDED

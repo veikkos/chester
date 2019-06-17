@@ -72,10 +72,11 @@ mbc get_type(uint8_t* rom)
     case 0x0B: // MMM01
     case 0x0C: // MMM01+RAM
     case 0x0D: // MMM01+RAM+BATTERY
-    case 0x0F: // MBC3+TIMER+BATTERY
-    case 0x10: // MBC3+TIMER+RAM+BATTERY
       gb_log(WARNING, "Unsupported ROM type");
       return NOT_SUPPORTED;
+    case 0x0F: // MBC3+TIMER+BATTERY
+    case 0x10: // MBC3+TIMER+RAM+BATTERY
+      return MBC3_BATTERY_RTC;
     case 0x11: // MBC3
     case 0x12: // MBC3+RAM
       return MBC3;

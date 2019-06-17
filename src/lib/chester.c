@@ -7,6 +7,7 @@
 #include "loader.h"
 #include "logger.h"
 #include "timer.h"
+#include "rtc.h"
 #include "save.h"
 #include "sync.h"
 
@@ -19,7 +20,34 @@
 #include <libgen.h>
 #endif
 
-bool init(chester *chester, const char* rom, const char* save_path, const char* bootloader)
+static void get_file_path(const char* rom, const char* data_path, char** file_path, const char* extension)
+{
+  char* base_name_cpy = strdup(rom);
+#ifdef WIN32
+  char base_name[128];
+  _splitpath(base_name_cpy, NULL, NULL, base_name, NULL);
+#else
+  char* base_name = basename(base_name_cpy);
+#endif
+
+  const size_t save_file_path_length = strlen(base_name) + strlen(extension) + 1 +
+    (data_path ? strlen(data_path) : 0);
+  *file_path = malloc(save_file_path_length);
+  if (data_path)
+    {
+      strcpy(*file_path, data_path);
+      strcat(*file_path, base_name);
+    }
+  else
+    {
+      strcpy(*file_path, base_name);
+    }
+  strcat(*file_path, extension);
+
+  free(base_name_cpy);
+}
+
+bool init(chester *chester, const char* rom, const char* data_path, const char* bootloader)
 {
   chester->rom = NULL;
   chester->bootloader = NULL;
@@ -29,7 +57,8 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
 
   chester->save_timer = 0;
   chester->save_game_file = NULL;
-  chester->save_supported = false;
+
+  chester->rtc_file = NULL;
 
   uint32_t rom_size = 0;
   chester->rom = read_file(rom, &rom_size, true);
@@ -86,35 +115,18 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
 
   sync_init(&chester->s, 100000, chester->ticks_cb);
 
-  chester->save_supported = (chester->mem.rom.type & MBC_BATTERY_MASK);
-
-  if (chester->save_supported)
+  if (chester->mem.rom.type & MBC_BATTERY_BIT)
     {
-      char* base_name_cpy = strdup(rom);
-#ifdef WIN32
-      char base_name[128];
-      _splitpath(base_name_cpy, NULL, NULL, base_name, NULL);
-#else
-      char* base_name = basename(base_name_cpy);
-#endif
-
-      const char extension[] = ".sav";
-      const size_t save_file_path_length = strlen(base_name) + strlen(extension) + 1 +
-              (save_path ? strlen(save_path) : 0);
-      chester->save_game_file = malloc(save_file_path_length);
-      if (save_path)
-        {
-          strcpy(chester->save_game_file, save_path);
-          strcat(chester->save_game_file, base_name);
-        }
-      else
-        {
-          strcpy(chester->save_game_file, base_name);
-        }
-      strcat(chester->save_game_file, extension);
+      get_file_path(rom, data_path, &chester->save_game_file, ".sav");
 
       load_game(chester->save_game_file, &chester->mem);
-      free(base_name_cpy);
+    }
+
+  if (chester->mem.rom.type & MBC_RTC_BIT)
+    {
+      get_file_path(rom, data_path, &chester->rtc_file, ".rtc");
+
+      load_rtc(chester->rtc_file, &chester->mem);
     }
 
   return true;
@@ -178,11 +190,18 @@ void uninit(chester *chester)
 
 void save_if_needed(chester *chester)
 {
-    if (chester->save_supported && chester->mem.banks.ram.written)
+    if (chester->save_game_file && chester->mem.banks.ram.written)
       {
         chester->mem.banks.ram.written = false;
 
         save_game(chester->save_game_file, &chester->mem);
+      }
+
+    if (chester->rtc_file && chester->mem.rtc.changed)
+      {
+        chester->mem.rtc.changed = false;
+
+        save_rtc(chester->rtc_file, &chester->mem);
       }
 }
 
@@ -224,9 +243,12 @@ int run(chester *chester)
       if (!chester->cpu_reg.stop)
         timer_update(&chester->cpu_reg, &chester->mem);
 
+      if (chester->rtc_file)
+        rtc_update(&chester->cpu_reg, &chester->mem);
+
       if (chester->keys_cumulative_ticks > chester->keys_ticks)
         {
-          if (chester->save_supported && chester->save_timer++ >= 10000)
+          if (chester->save_game_file && chester->save_timer++ >= 10000)
             {
               chester->save_timer = 0;
 

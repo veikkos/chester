@@ -7,6 +7,7 @@
 #include <stdint.h>
 
 #define MBC_BATTERY_BIT 0x80
+#define MBC_RTC_BIT 0x40
 
 typedef enum {
   NONE = 0x00,
@@ -14,13 +15,13 @@ typedef enum {
   MBC1_BATTERY = MBC1 + MBC_BATTERY_BIT,
   MBC3 = 0x02,
   MBC3_BATTERY = MBC3 + MBC_BATTERY_BIT,
-  MBC5 = 0x03,
+  MBC3_BATTERY_RTC = MBC3 + MBC_BATTERY_BIT + MBC_RTC_BIT,
+  MBC5 = 0x04,
   MBC5_BATTERY = MBC5 + MBC_BATTERY_BIT,
   NOT_SUPPORTED = 0xFF
 } mbc;
 
-#define MBC_TYPE_MASK (uint8_t)0x7F
-#define MBC_BATTERY_MASK (uint8_t)MBC_BATTERY_BIT
+#define MBC_TYPE_MASK (uint8_t)0x3F
 
 struct memory_s {
   uint8_t ie_register;
@@ -77,6 +78,16 @@ struct memory_s {
     }h_blank;
   }dma;
 #endif
+
+  struct {
+    uint64_t system;
+    uint32_t tick;
+    uint32_t relative;
+    uint8_t active_register;
+    bool run;
+    bool carry;
+    bool changed;
+  }rtc;
 };
 
 typedef struct memory_s memory;
