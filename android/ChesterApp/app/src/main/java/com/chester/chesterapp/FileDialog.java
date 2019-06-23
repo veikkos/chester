@@ -16,7 +16,7 @@ import java.util.List;
 // contributed to this helper class on Stack Overflow, see
 // https://stackoverflow.com/questions/3592717/choose-file-dialog
 
-public class FileDialog {
+class FileDialog {
     private static final String PARENT_DIR = "..";
     private String[] mFileList;
     private File mCurrentPath;
@@ -58,11 +58,11 @@ public class FileDialog {
         return dialog;
     }
 
-    public void addFileListener(FileSelectedListener listener) {
+    void addFileListener(FileSelectedListener listener) {
         mFileListenerList.add(listener);
     }
 
-    public void showDialog() {
+    void showDialog() {
         createFileDialog().show();
     }
 
@@ -114,11 +114,11 @@ class ListenerList<L> {
         void fireEvent(L listener);
     }
 
-    public void add(L listener) {
+    void add(L listener) {
         listenerList.add(listener);
     }
 
-    public void fireEvent(FireHandler<L> fireHandler) {
+    void fireEvent(FireHandler<L> fireHandler) {
         List<L> copy = new ArrayList<>(listenerList);
         for (L l : copy) {
             fireHandler.fireEvent(l);

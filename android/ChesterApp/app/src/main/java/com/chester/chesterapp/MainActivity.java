@@ -31,7 +31,6 @@ public class MainActivity extends AppCompatActivity {
         System.loadLibrary("native-lib");
     }
 
-    final int code = 123;
     final int readRequestCode = 124;
     final static String TAG = "Chester";
     static java.util.concurrent.atomic.AtomicBoolean paused;
@@ -195,20 +194,14 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode,
-                                           @NonNull String permissions[],
+                                           @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case readRequestCode: {
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-
-                    openGameSelector(this);
-
-                } else {
-                    // permission denied
-                    finish();
-                }
-                break;
+        if (requestCode == readRequestCode) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                openGameSelector(this);
+            } else {
+                // permission denied
+                finish();
             }
         }
     }
