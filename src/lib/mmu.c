@@ -144,53 +144,43 @@ static void color_palette_data(memory* mem, const uint16_t index_addr, const uin
 }
 #endif
 
-static inline void dma(memory* mem, const uint8_t input)
+static uint8_t* get_dma_input_addr(memory* mem, const uint16_t input_addr)
 {
-  const uint16_t input_addr = (uint16_t)input << 8;
-  uint8_t *input_ptr = NULL;
-
   switch (input_addr & 0xF000)
   {
   case 0x0000:
   case 0x1000:
   case 0x2000:
   case 0x3000:
-    input_ptr = &mem->rom.data[input_addr];
-    break;
+    return &mem->rom.data[input_addr];
   case 0x4000:
   case 0x5000:
   case 0x6000:
   case 0x7000:
-    input_ptr = &mem->rom.data[input_addr + mem->banks.rom.offset];
-    break;
-  case 0x8000:
-  case 0x9000:
-    input_ptr = &mem->video_ram
-#ifdef CGB
-      [get_video_ram_bank(mem)]
-#endif
-      [input_addr - 0x8000];
-    break;
+    return &mem->rom.data[input_addr + mem->banks.rom.offset];
   case 0xA000:
   case 0xB000:
-    input_ptr = &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
-    break;
+    return &mem->banks.ram.data[mem->banks.ram.selected][input_addr - 0xA000];
   case 0xC000:
 #ifndef CGB
   case 0xD000:
 #endif
-    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000];
-    break;
+    return &mem->internal_8k_ram[input_addr - 0xC000];
 #ifdef CGB
   case 0xD000:
-    input_ptr = &mem->internal_8k_ram[input_addr - 0xC000 + get_internal_bank_offset(mem)];
-    break;
+    return &mem->internal_8k_ram[input_addr - 0xC000 + get_internal_bank_offset(mem)];
 #endif
   default:
-    break;
+    assert(!"Unexpected DMA input address");
+    return NULL;
   }
+}
 
-  assert(input_ptr);
+static inline void dma(memory* mem, const uint8_t input)
+{
+  const uint16_t input_addr = (uint16_t)input << 8;
+  const uint8_t *input_ptr = get_dma_input_addr(mem, input_addr);
+
   memcpy(mem->oam, input_ptr, 160);
 }
 
@@ -317,13 +307,10 @@ static inline void write_high(memory *mem,
           else
             {
               const uint16_t length = (uint16_t)((input & MEM_HDMA5_LENGTH_MASK) + 1) * MEM_HDMA_HBLANK_LENGTH;
-
-              uint16_t i;
               const uint8_t bank = get_video_ram_bank(mem);
-              for (i = 0; i < length; ++i)
-                {
-                  mem->video_ram[bank][dst + i] = mmu_read_byte(mem, src + i);
-                }
+              const uint8_t* input_addr = get_dma_input_addr(mem, src);
+
+              memcpy(&mem->video_ram[bank][dst], input_addr, length);
 
               mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = 0xFF;
             }
@@ -598,12 +585,12 @@ void mmu_hblank_dma(memory *mem)
   if (!(mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] & MEM_HDMA5_MODE_BIT))
     {
       const uint8_t bank = get_video_ram_bank(mem);
-      uint8_t i;
+      const uint8_t* input_addr = get_dma_input_addr(mem, mem->dma.h_blank.src);
 
-      for (i = 0; i < MEM_HDMA_HBLANK_LENGTH; ++i)
-        {
-          mem->video_ram[bank][mem->dma.h_blank.dst++] = mmu_read_byte(mem, mem->dma.h_blank.src++);
-        }
+      memcpy(&mem->video_ram[bank][mem->dma.h_blank.dst], input_addr, MEM_HDMA_HBLANK_LENGTH);
+
+      mem->dma.h_blank.dst += MEM_HDMA_HBLANK_LENGTH;
+      mem->dma.h_blank.src += MEM_HDMA_HBLANK_LENGTH;
 
       mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] -= 1;
     }
