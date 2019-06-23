@@ -194,6 +194,163 @@ static inline void dma(memory* mem, const uint8_t input)
   memcpy(mem->oam, input_ptr, 160);
 }
 
+static inline void write_high(memory *mem,
+                              const uint16_t address,
+                              const uint8_t input)
+{
+  if (address < 0xFE00)
+    {
+#ifdef CGB
+      // Echo of above switchable RAM
+      const uint16_t offset = get_internal_bank_offset(mem);
+      mem->internal_8k_ram[address - 0xE000 + offset] = input;
+#else
+      mem->internal_8k_ram[address - 0xE000] = input;
+#endif
+    }
+  else if (address < 0xFEA0)
+    {
+      mem->oam[address - 0xFE00] = input;
+    }
+  else if (address < 0xFF00)
+    {
+      mem->low_empty[address - 0xFEA0] = input;
+    }
+  else if (address < MEM_HIGH_EMPTY_START_ADDR)
+    {
+      switch(address)
+      {
+      case MEM_DIV_ADDR:
+        mem->div_modified = true;
+        mem->io_registers[address & 0x00FF] = 0;
+        break;
+      case MEM_LCDC_ADDR:
+        // If LCD is disabled, LY needs to be cleared
+        if ((mem->io_registers[address & 0x00FF] &
+            MEM_LCDC_SCREEN_ENABLED_FLAG) &&
+            !(input & MEM_LCDC_SCREEN_ENABLED_FLAG))
+          {
+            mem->io_registers[MEM_LY_ADDR & 0x00FF] = 0;
+            isr_compare_ly_lyc(mem, 0, mmu_read_byte(mem, MEM_LYC_ADDR));
+
+            mem->lcd_stopped = true;
+          }
+
+          mem->io_registers[address & 0x00FF] = input;
+          break;
+      case MEM_LCD_STAT:
+        // Mode flags are not possible to overwrite
+        mem->io_registers[address & 0x00FF] =
+          (mem->io_registers[address & 0x00FF] & 0x87) |
+          (input & 0x78);
+        break;
+      case MEM_LY_ADDR:
+        mem->io_registers[address & 0x00FF] = 0;
+        isr_compare_ly_lyc(mem, 0, mmu_read_byte(mem, MEM_LYC_ADDR));
+        break;
+      case MEM_LYC_ADDR:
+        gb_log(VERBOSE, "LYC == (%d)", input);
+        mem->io_registers[address & 0x00FF] = input;
+        isr_compare_ly_lyc(mem, mmu_read_byte(mem, MEM_LY_ADDR), input);
+        break;
+      case MEM_DMA_ADDR:
+        dma(mem, input);
+        break;
+      case 0xFF26:
+        break;
+      case MEM_TIMA_ADDR:
+        mem->tima_modified = true;
+        // Intentional fall through
+      default:
+        mem->io_registers[address & 0x00FF] = input;
+        break;
+      }
+    }
+  else if (address < 0xFF80)
+    {
+#ifdef CGB
+      switch (address)
+      {
+      case MEM_SVBK_ADDR:
+        {
+          uint8_t bank = input & MEM_VBK_BANK_MASK;
+          if (!bank)
+            bank = 1;
+
+          mem->high_empty[MEM_SVBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = bank;
+          break;
+        }
+      case MEM_VBK_ADDR:
+        mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & 0x01;
+        break;
+      case MEM_BCPD_BGPD_ADDR:
+        color_palette_data(mem, MEM_BCPS_BGPI_ADDR, MEM_PALETTE_BG_INDEX, input);
+        break;
+      case MEM_OCPD_OBPD_ADDR:
+        color_palette_data(mem, MEM_OCPS_OBPI_ADDR, MEM_PALETTE_SPRITE_INDEX, input);
+        break;
+      case MEM_HDMA1_ADDR:
+      case MEM_HDMA2_ADDR:
+      case MEM_HDMA3_ADDR:
+      case MEM_HDMA4_ADDR:
+        mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
+        break;
+      case MEM_HDMA5_ADDR:
+        {
+          if (!(mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] & MEM_HDMA5_MODE_BIT))
+            {
+              gb_log(WARNING, "Wrote to HDMA5 while DMA active");
+              return;
+            }
+
+          const uint16_t src = (mem->high_empty[MEM_HDMA1_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) +
+            (mem->high_empty[MEM_HDMA2_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
+          const uint16_t dst = ((mem->high_empty[MEM_HDMA3_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) & 0x1F00) +
+            (mem->high_empty[MEM_HDMA4_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
+
+          if (input & MEM_HDMA5_MODE_BIT)
+            {
+              mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & MEM_HDMA5_LENGTH_MASK;
+              mem->dma.h_blank.dst = dst;
+              mem->dma.h_blank.src = src;
+            }
+          else
+            {
+              const uint16_t length = (uint16_t)((input & MEM_HDMA5_LENGTH_MASK) + 1) * MEM_HDMA_HBLANK_LENGTH;
+
+              uint16_t i;
+              const uint8_t bank = get_video_ram_bank(mem);
+              for (i = 0; i < length; ++i)
+                {
+                  mem->video_ram[bank][dst + i] = mmu_read_byte(mem, src + i);
+                }
+
+              mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = 0xFF;
+            }
+            break;
+         }
+        default:
+#endif
+          // Special register stops bootloader
+          if (mem->bootloader_running && address == 0xFF50 && input == 0x01)
+            mem->bootloader_running = false;
+          else
+            mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
+#ifdef CGB
+          break;
+      }
+#endif
+    }
+  else if (address < 0xFFFF)
+    {
+      mem->working_ram[address - 0xFF80] = input;
+    }
+  else
+    {
+      mem->ie_register = input;
+    }
+}
+
 void mmu_write_byte(memory *mem,
                     const uint16_t address,
                     const uint8_t input)
@@ -306,157 +463,57 @@ void mmu_write_byte(memory *mem,
       }
 #endif
     default:
-      if (address < 0xFE00)
-        {
+      write_high(mem, address, input);
+      break;
+    }
+}
+
+static inline uint8_t read_high(memory *mem, const uint16_t address)
+{
+  if (address < 0xFE00)
+    {
+      // Echo of above switchable (on CGB) RAM
 #ifdef CGB
-          // Echo of above switchable RAM
-          const uint16_t offset = get_internal_bank_offset(mem);
-          mem->internal_8k_ram[address - 0xE000 + offset] = input;
-#else
-          mem->internal_8k_ram[address - 0xE000] = input;
+      const uint16_t offset = get_internal_bank_offset(mem);
 #endif
-        }
-      else if (address < 0xFEA0)
-        {
-          mem->oam[address - 0xFE00] = input;
-        }
-      else if (address < 0xFF00)
-        {
-          mem->low_empty[address - 0xFEA0] = input;
-        }
-      else if (address < MEM_HIGH_EMPTY_START_ADDR)
-        {
-          switch(address)
-            {
-            case MEM_DIV_ADDR:
-              mem->div_modified = true;
-              mem->io_registers[address & 0x00FF] = 0;
-              break;
-            case MEM_LCDC_ADDR:
-              // If LCD is disabled, LY needs to be cleared
-              if ((mem->io_registers[address & 0x00FF] &
-                   MEM_LCDC_SCREEN_ENABLED_FLAG) &&
-                  !(input & MEM_LCDC_SCREEN_ENABLED_FLAG))
-                {
-                  mem->io_registers[MEM_LY_ADDR & 0x00FF] = 0;
-                  isr_compare_ly_lyc(mem, 0, mmu_read_byte(mem, MEM_LYC_ADDR));
-
-                  mem->lcd_stopped = true;
-                }
-
-              mem->io_registers[address & 0x00FF] = input;
-              break;
-            case MEM_LCD_STAT:
-              // Mode flags are not possible to overwrite
-              mem->io_registers[address & 0x00FF] =
-                (mem->io_registers[address & 0x00FF] & 0x87) |
-                (input & 0x78);
-              break;
-            case MEM_LY_ADDR:
-              mem->io_registers[address & 0x00FF] = 0;
-              isr_compare_ly_lyc(mem, 0, mmu_read_byte(mem, MEM_LYC_ADDR));
-              break;
-            case MEM_LYC_ADDR:
-              gb_log(VERBOSE, "LYC == (%d)", input);
-              mem->io_registers[address & 0x00FF] = input;
-              isr_compare_ly_lyc(mem, mmu_read_byte(mem, MEM_LY_ADDR), input);
-              break;
-            case MEM_DMA_ADDR:
-              dma(mem, input);
-              break;
-            case 0xFF26:
-              break;
-            case MEM_TIMA_ADDR:
-              mem->tima_modified = true;
-              // Intentional fall through
-            default:
-              mem->io_registers[address & 0x00FF] = input;
-              break;
-            }
-        }
-      else if (address < 0xFF80)
-        {
+      return mem->internal_8k_ram[address - 0xE000
 #ifdef CGB
-          switch (address)
-            {
-            case MEM_SVBK_ADDR:
-              {
-                uint8_t bank = input & MEM_VBK_BANK_MASK;
-                if (!bank)
-                  bank = 1;
-
-                mem->high_empty[MEM_SVBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = bank;
-                break;
-              }
-            case MEM_VBK_ADDR:
-              mem->high_empty[MEM_VBK_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & 0x01;
-              break;
-            case MEM_BCPD_BGPD_ADDR:
-              color_palette_data(mem, MEM_BCPS_BGPI_ADDR, MEM_PALETTE_BG_INDEX, input);
-              break;
-            case MEM_OCPD_OBPD_ADDR:
-              color_palette_data(mem, MEM_OCPS_OBPI_ADDR, MEM_PALETTE_SPRITE_INDEX, input);
-              break;
-            case MEM_HDMA1_ADDR:
-            case MEM_HDMA2_ADDR:
-            case MEM_HDMA3_ADDR:
-            case MEM_HDMA4_ADDR:
-              mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
-              break;
-            case MEM_HDMA5_ADDR:
-              {
-                if (!(mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] & MEM_HDMA5_MODE_BIT))
-                  {
-                    gb_log(WARNING, "Wrote to HDMA5 while DMA active");
-                    return;
-                  }
-
-                const uint16_t src = (mem->high_empty[MEM_HDMA1_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) +
-                  (mem->high_empty[MEM_HDMA2_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
-                const uint16_t dst = ((mem->high_empty[MEM_HDMA3_ADDR - MEM_HIGH_EMPTY_START_ADDR] << 8) & 0x1F00) +
-                  (mem->high_empty[MEM_HDMA4_ADDR - MEM_HIGH_EMPTY_START_ADDR] & 0xF0);
-
-                if (input & MEM_HDMA5_MODE_BIT)
-                  {
-                    mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = input & MEM_HDMA5_LENGTH_MASK;
-                    mem->dma.h_blank.dst = dst;
-                    mem->dma.h_blank.src = src;
-                  }
-                else
-                  {
-                    const uint16_t length = (uint16_t)((input & MEM_HDMA5_LENGTH_MASK) + 1) * MEM_HDMA_HBLANK_LENGTH;
-
-                    uint16_t i;
-                    const uint8_t bank = get_video_ram_bank(mem);
-                    for (i = 0; i < length; ++i)
-                      {
-                        mem->video_ram[bank][dst + i] = mmu_read_byte(mem, src + i);
-                      }
-
-                    mem->high_empty[MEM_HDMA5_ADDR - MEM_HIGH_EMPTY_START_ADDR] = 0xFF;
-                  }
-                break;
-              }
-            default:
+          + offset
 #endif
-              // Special register stops bootloader
-              if (mem->bootloader_running && address == 0xFF50 && input == 0x01)
-                mem->bootloader_running = false;
-              else
-                mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR] = input;
-#ifdef CGB
-              break;
-            }
-#endif
-        }
-      else if (address < 0xFFFF)
-        {
-          mem->working_ram[address - 0xFF80] = input;
-        }
-      else
-        {
-          mem->ie_register = input;
-        }
+      ];
+    }
+  else if (address < 0xFEA0)
+    {
+      return mem->oam[address - 0xFE00];
+    }
+  else if (address < 0xFF00)
+    {
+      return mem->low_empty[address - 0xFEA0];
+    }
+  else if (address == 0xFF00)
+    {
+      const uint8_t key_base = 0xCF;
+      uint8_t key_out = key_base | mem->io_registers[0];
+
+      key_get_raw_output(mem->k, &mem->io_registers[0], &key_out);
+
+      return key_out;
+    }
+  else if (address < MEM_HIGH_EMPTY_START_ADDR)
+    {
+      return mem->io_registers[address - 0xFF00];
+    }
+  else if (address < 0xFF80)
+    {
+      return mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR];
+    }
+  else if (address < 0xFFFF)
+    {
+      return mem->working_ram[address - 0xFF80];
+    }
+  else
+    {
+      return mem->ie_register;
     }
 }
 
@@ -515,51 +572,7 @@ uint8_t mmu_read_byte(memory *mem, const uint16_t address)
       }
 #endif
     default:
-      if (address < 0xFE00)
-        {
-          // Echo of above switchable (on CGB) RAM
-#ifdef CGB
-          const uint16_t offset = get_internal_bank_offset(mem);
-#endif
-          return mem->internal_8k_ram[address - 0xE000
-#ifdef CGB
-              + offset
-#endif
-          ];
-        }
-      else if (address < 0xFEA0)
-        {
-          return mem->oam[address - 0xFE00];
-        }
-      else if (address < 0xFF00)
-        {
-          return mem->low_empty[address - 0xFEA0];
-        }
-      else if (address == 0xFF00)
-        {
-          const uint8_t key_base = 0xCF;
-          uint8_t key_out = key_base | mem->io_registers[0];
-
-          key_get_raw_output(mem->k, &mem->io_registers[0], &key_out);
-
-          return key_out;
-        }
-      else if (address < MEM_HIGH_EMPTY_START_ADDR)
-        {
-          return mem->io_registers[address - 0xFF00];
-        }
-      else if (address < 0xFF80)
-        {
-          return mem->high_empty[address - MEM_HIGH_EMPTY_START_ADDR];
-        }
-      else if (address < 0xFFFF)
-        {
-          return mem->working_ram[address - 0xFF80];
-        }
-      else
-        {
-          return mem->ie_register;
-        }
+      return read_high(mem, address);
     }
 
   assert(!"Should not have any unhandled read addresses");
