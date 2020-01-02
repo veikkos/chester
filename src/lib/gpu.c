@@ -58,52 +58,22 @@ static inline void change_saturation(uint8_t *r, uint8_t *g, uint8_t *b, const d
   *b = (uint8_t)((P + (B - P) * change) * 0xFF);
 }
 
-static inline void wash_color_if(uint8_t *c, const uint8_t largest, const double change)
+// Adaptation of algorithm found from https://byuu.net/video/color-emulation
+static inline void wash_colors(uint8_t *r, uint8_t *g, uint8_t *b)
 {
-  if (largest > *c)
-    {
-      const uint8_t diff = largest - *c;
-      *c += (uint8_t)(change * diff);
-    }
+  int r_weighted = (*r * 26 + *g * 4 + *b * 2);
+  int g_weighted = (*g * 24 + *b * 8);
+  int b_weighted = (*r * 6 + *g * 4 + *b * 22);
+  *r = (r_weighted * 255) / 992;
+  *g = (g_weighted * 255) / 992;
+  *b = (b_weighted * 255) / 992;
 }
-
-static inline void wash_colors(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
-{
-  uint8_t largest;
-  uint8_t *second_largest;
-
-  if (*r >= *g && *r >= *b)
-    {
-      largest = *r;
-      second_largest = *g > *b ? g : b;
-    }
-  else if (*g >= *r && *g >= *b)
-    {
-      largest = *g;
-      second_largest = *r > *b ? r : b;
-    }
-  else
-    {
-      largest = *b;
-      second_largest = *r > *g ? r : g;
-    }
-
-  wash_color_if(r, largest, change);
-  wash_color_if(g, largest, change);
-  wash_color_if(b, largest, change);
-
-  const double half_change = change / 2;
-
-  wash_color_if(r, *second_largest, half_change);
-  wash_color_if(g, *second_largest, half_change);
-  wash_color_if(b, *second_largest, half_change);
-}
-#endif
-
+#else
 static inline uint8_t convert_color(const uint8_t color)
 {
   return (uint8_t)((uint32_t)(color) * 0xFF / 0x1F);
 }
+#endif
 
 static inline const uint8_t *get_color(const unsigned int raw_color,
                                        const uint8_t *palette)
@@ -121,13 +91,18 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   const uint8_t b_index = 0;
 #endif
 
+  colors[r_index] = p_colors & 0x1F;
+  colors[g_index] = (p_colors >> 5) & 0x1F;
+  colors[b_index] = (p_colors >> 10) & 0x1F;
+
+#ifdef COLOR_CORRECTION
+  // Washing also converts colors to 8-bit
+  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index]);
+  change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.85);
+#else
   colors[r_index] = convert_color(p_colors & 0x1F);
   colors[g_index] = convert_color((p_colors >> 5) & 0x1F);
   colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
-
-#ifdef COLOR_CORRECTION
-  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index], 0.15);
-  change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.85);
 #endif
 
   return colors;
