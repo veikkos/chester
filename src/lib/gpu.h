@@ -19,6 +19,10 @@ struct gpu_s {
 
   void *app_data;
   void *locked_pixel_data;
+
+#ifdef CGB
+  bool color_correction;
+#endif
 };
 
 typedef struct gpu_s gpu;

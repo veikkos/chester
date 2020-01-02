@@ -19,6 +19,15 @@ int gpu_init(gpu *g, gpu_init_cb cb)
 
   gpu_reset(g);
 
+#ifdef CGB
+  g->color_correction =
+#ifdef COLOR_CORRECTION
+    true;
+#else
+    false;
+#endif
+#endif
+
   return 1;
 }
 
@@ -36,7 +45,6 @@ void gpu_debug_print(gpu *g, level l)
 #endif
 
 #ifdef CGB
-#ifdef COLOR_CORRECTION
 // Adaptation of http://alienryderflex.com/saturation.html by Darel Rex Finley
 static inline void change_saturation(uint8_t *r, uint8_t *g, uint8_t *b, const double change)
 {
@@ -68,15 +76,14 @@ static inline void wash_colors(uint8_t *r, uint8_t *g, uint8_t *b)
   *g = (g_weighted * 255) / 992;
   *b = (b_weighted * 255) / 992;
 }
-#else
 static inline uint8_t convert_color(const uint8_t color)
 {
   return (uint8_t)((uint32_t)(color) * 0xFF / 0x1F);
 }
-#endif
 
 static inline const uint8_t *get_color(const unsigned int raw_color,
-                                       const uint8_t *palette)
+                                       const uint8_t *palette,
+                                       bool color_correction)
 {
   static uint8_t colors[3];
   const uint16_t p_colors = palette[raw_color * 2] + (palette[raw_color * 2 + 1] << 8);
@@ -91,19 +98,22 @@ static inline const uint8_t *get_color(const unsigned int raw_color,
   const uint8_t b_index = 0;
 #endif
 
-  colors[r_index] = p_colors & 0x1F;
-  colors[g_index] = (p_colors >> 5) & 0x1F;
-  colors[b_index] = (p_colors >> 10) & 0x1F;
+  if (color_correction)
+    {
+      colors[r_index] = p_colors & 0x1F;
+      colors[g_index] = (p_colors >> 5) & 0x1F;
+      colors[b_index] = (p_colors >> 10) & 0x1F;
 
-#ifdef COLOR_CORRECTION
-  // Washing also converts colors to 8-bit
-  wash_colors(&colors[r_index], &colors[g_index], &colors[b_index]);
-  change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.85);
-#else
-  colors[r_index] = convert_color(p_colors & 0x1F);
-  colors[g_index] = convert_color((p_colors >> 5) & 0x1F);
-  colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
-#endif
+      // Washing also converts colors to 8-bit
+      wash_colors(&colors[r_index], &colors[g_index], &colors[b_index]);
+      change_saturation(&colors[r_index], &colors[g_index], &colors[b_index], 0.85);
+    }
+  else
+    {
+      colors[r_index] = convert_color(p_colors & 0x1F);
+      colors[g_index] = convert_color((p_colors >> 5) & 0x1F);
+      colors[b_index] = convert_color((p_colors >> 10) & 0x1F);
+    }
 
   return colors;
 }
@@ -126,14 +136,15 @@ static inline const uint8_t *get_mono_color(const unsigned int raw_color,
 static inline const uint8_t *get_color_data(const unsigned int raw_color,
                                             const uint8_t mono_palette
 #ifdef CGB
-                                            , const uint8_t *color_palette
+                                            , const uint8_t *color_palette,
+                                            bool color_correction
 #endif
                                             )
 {
     return
 #ifdef CGB
       color_palette ?
-      get_color(raw_color, color_palette) :
+      get_color(raw_color, color_palette, color_correction) :
 #endif
       get_mono_color(raw_color, mono_palette);
 }
@@ -149,7 +160,8 @@ void write_texture(uint8_t y,
                    uint8_t mono_palette
 #ifdef CGB
                    , const uint8_t *color_palette,
-                   bool bg_priority
+                   bool bg_priority,
+                   bool color_correction
 #endif
                    )
 {
@@ -192,7 +204,8 @@ void write_texture(uint8_t y,
                 {
                   memcpy(texture + output_pixel_offset, get_color_data(raw_color, mono_palette
 #ifdef CGB
-                      , color_palette
+                      , color_palette,
+                      color_correction
 #endif
                   ), 3);
                   texture[output_pixel_offset + 3] = 255;
@@ -206,7 +219,8 @@ void write_texture(uint8_t y,
             {
               memcpy(texture + output_pixel_offset, get_color_data(raw_color, mono_palette
 #ifdef CGB
-                  , color_palette
+                  , color_palette,
+                  color_correction
 #endif
               ), 3);
               texture[output_pixel_offset + 3] = 255;
@@ -253,7 +267,11 @@ static inline void process_background_tiles(memory *mem,
                                             const uint16_t tile_data_addr,
                                             const int16_t offset,
                                             uint8_t *output,
-                                            uint8_t *row_data)
+                                            uint8_t *row_data
+#ifdef CGB
+                                            , bool color_correction
+#endif
+                                            )
 {
   size_t tile_pos;
   uint16_t tile_data;
@@ -334,7 +352,8 @@ static inline void process_background_tiles(memory *mem,
                     mono_palette
 #ifdef CGB
                     , color_palette,
-                    priority
+                    priority,
+                    color_correction
 #endif
       );
     }
@@ -346,7 +365,11 @@ static inline void process_sprite_attributes(memory *mem,
                                              const bool high,
                                              const uint16_t sprite_data_addr,
                                              uint8_t *output,
-                                             uint8_t *row_data)
+                                             uint8_t *row_data
+#ifdef CGB
+                                             , bool color_correction
+#endif
+                                             )
 {
   static const int number_of_sprites = 40;
   const unsigned int sprite_attributes_len = 4;
@@ -437,7 +460,8 @@ static inline void process_sprite_attributes(memory *mem,
                             mono_palette
 #ifdef CGB
                             , color_palette,
-                            false
+                            false,
+                            color_correction
 #endif
               );
             }
@@ -478,7 +502,11 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                    (int16_t)read_io_byte(mem, MEM_SCX_ADDR) *
                                    -1,
                                    g->locked_pixel_data,
-                                   row);
+                                   row
+#ifdef CGB
+                                   , g->color_correction
+#endif
+          );
         }
 
       if (lcdc & MEM_LCDC_BG_WINDOW_ENABLED_FLAG &&
@@ -509,7 +537,11 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                            tile_data_address,
                                            256 + (window_x - 7),
                                            g->locked_pixel_data,
-                                           row);
+                                           row
+#ifdef CGB
+                                           , g->color_correction
+#endif
+                  );
                 }
             }
         }
@@ -522,7 +554,11 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                     lcdc & MEM_LCDC_SPRITES_SIZE_FLAG,
                                     MEM_SPRITE_ADDR,
                                     g->locked_pixel_data,
-                                    row);
+                                    row
+#ifdef CGB
+                                    , g->color_correction
+#endif
+          );
         }
     }
 }
