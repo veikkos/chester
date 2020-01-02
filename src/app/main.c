@@ -8,6 +8,9 @@
 #include <stdlib.h>
 
 bool done = false;
+#ifdef CGB
+bool toggle_color_correction = false;
+#endif
 
 #if defined(WIN32)
 #if defined(NDEBUG)
@@ -218,6 +221,11 @@ int keys_update(keys *k)
       case SDLK_m:
         k->select = false;
         break;
+#ifdef CGB
+      case SDLK_F4:
+        toggle_color_correction = true;
+        break;
+#endif
       default:
         break;
       }
@@ -281,6 +289,14 @@ int main(int argc, char **argv)
             }
           break;
         }
+
+#ifdef CGB
+      if (toggle_color_correction)
+        {
+          toggle_color_correction = false;
+          set_color_correction(&chester, !get_color_correction(&chester));
+        }
+#endif
     }
 
   uninit(&chester);

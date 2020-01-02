@@ -59,6 +59,8 @@ Optionally bootloader can be used by providing "DMG_ROM.bin" in working director
 | Start    | N          |
 | Select   | M          |
 
+F4 toggles color correction on SDL port if CGB support is enabled and playing CGB game.
+
 ### Visual Studio ###
 
 SDL2 library can be downloaded from https://www.libsdl.org/.
@@ -79,10 +81,10 @@ $ ./gradlew build
 
 ### Build options ###
 
-|                  | Description                                  | Options      |
-|------------------|----------------------------------------------|--------------|
-| CGB              | Game Boy Color support                       | **ON** / OFF |
-| COLOR_CORRECTION | Primitive color correction if CGB is enabled | **ON** / OFF |
+|                  | Description                            | Options      |
+|------------------|----------------------------------------|--------------|
+| CGB              | Game Boy Color support                 | **ON** / OFF |
+| COLOR_CORRECTION | Color correction by default (CGB only) | **ON** / OFF |
 
 **Bolded** is default value.
 
@@ -91,6 +93,8 @@ Usage e.g.
 ```
 $ cmake -DCGB=OFF ..
 ```
+
+Color correction value can be enabled/disabled during runtime.
 
 ## Tested platforms ##
 

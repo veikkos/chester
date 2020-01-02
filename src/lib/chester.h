@@ -46,6 +46,12 @@ void register_gpu_render_callback(chester *chester, gpu_render_cb cb);
 
 void save_if_needed(chester *chester);
 
+#if CGB
+bool get_color_correction(chester *chester);
+
+void set_color_correction(chester *chester, bool color_correction);
+#endif
+
 bool init(chester *chester, const char* rom, const char* save_path, const char* bootloader);
 
 void uninit(chester *chester);

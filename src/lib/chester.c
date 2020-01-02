@@ -186,6 +186,18 @@ void save_if_needed(chester *chester)
       }
 }
 
+#if CGB
+bool get_color_correction(chester *chester)
+{
+  return chester->g.color_correction;
+}
+
+void set_color_correction(chester *chester, bool color_correction)
+{
+  chester->g.color_correction = color_correction;
+}
+#endif
+
 int run(chester *chester)
 {
   int run_cycles = 4194304 / 4;
