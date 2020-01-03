@@ -18,7 +18,7 @@ struct gpu_s {
   } clock;
 
   void *app_data;
-  void *locked_pixel_data;
+  void *pixel_data;
 
 #ifdef CGB
   bool color_correction;
@@ -29,7 +29,7 @@ typedef struct gpu_s gpu;
 
 typedef bool (*gpu_init_cb)(gpu* g);
 typedef void (*gpu_uninit_cb)(gpu* g);
-typedef bool (*gpu_lock_texture_cb)(gpu* g);
+typedef bool (*gpu_alloc_image_buffer_cb)(gpu* g);
 typedef void (*gpu_render_cb)(gpu* g);
 
 #define X_RES 160
@@ -64,6 +64,6 @@ void gpu_debug_print(gpu *g, level l);
 #define gpu_debug_print(g, l) ;
 #endif
 
-int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_lock_texture_cb l_cb);
+int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_alloc_image_buffer_cb l_cb);
 
 #endif

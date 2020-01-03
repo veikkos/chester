@@ -10,7 +10,7 @@
 int gpu_init(gpu *g, gpu_init_cb cb)
 {
   g->app_data = NULL;
-  g->locked_pixel_data = NULL;
+  g->pixel_data = NULL;
 
   if (!cb(g))
     {
@@ -470,14 +470,14 @@ static inline void process_sprite_attributes(memory *mem,
     }
 }
 
-static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_texture_cb cb)
+static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_alloc_image_buffer_cb a_cb)
 {
-  if (!g->locked_pixel_data)
+  if (!g->pixel_data)
     {
-      cb(g);
+      if (a_cb) a_cb(g);
     }
 
-  if (g->locked_pixel_data)
+  if (g->pixel_data)
     {
       const uint8_t lcdc = read_io_byte(mem, MEM_LCDC_ADDR);
       uint8_t row[160];
@@ -502,7 +502,7 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                    tile_data_address,
                                    (int16_t)read_io_byte(mem, MEM_SCX_ADDR) *
                                    -1,
-                                   g->locked_pixel_data,
+                                   g->pixel_data,
                                    row
 #ifdef CGB
                                    , g->color_correction
@@ -537,7 +537,7 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                            tile_map_address,
                                            tile_data_address,
                                            256 + (window_x - 7),
-                                           g->locked_pixel_data,
+                                           g->pixel_data,
                                            row
 #ifdef CGB
                                            , g->color_correction
@@ -554,7 +554,7 @@ static inline void scanline(gpu *g, memory *mem, const uint8_t line, gpu_lock_te
                                     MEM_SPRITE_ATTRIBUTE_TABLE,
                                     lcdc & MEM_LCDC_SPRITES_SIZE_FLAG,
                                     MEM_SPRITE_ADDR,
-                                    g->locked_pixel_data,
+                                    g->pixel_data,
                                     row
 #ifdef CGB
                                     , g->color_correction
@@ -579,7 +579,7 @@ static void set_mode(memory *mem, const state mode)
   write_io_byte(mem, MEM_LCD_STAT, stat);
 }
 
-int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_lock_texture_cb l_cb)
+int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gpu_alloc_image_buffer_cb a_cb)
 {
   // Reset GPU state if LCD got disabled
   if (mem->lcd_stopped)
@@ -624,7 +624,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
               mmu_hblank_dma(mem);
             }
 #endif
-          scanline(g, mem, line, l_cb);
+          scanline(g, mem, line, a_cb);
 
           isr_set_lcdc_isr_if_enabled(mem, MEM_LCDC_HBLANK_ISR_ENABLED_FLAG);
 

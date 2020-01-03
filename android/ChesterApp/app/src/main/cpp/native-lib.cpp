@@ -55,19 +55,23 @@ static void delayCb(uint32_t ms)
 
 static bool initGpuCb(gpu* g)
 {
-    g->locked_pixel_data = malloc(buffer_size);
+    g->pixel_data = malloc(buffer_size);
     return true;
 }
 
 static void uninitGpuCb(gpu* g)
 {
-    if (g->locked_pixel_data) {
-        free(g->locked_pixel_data);
+    if (g->pixel_data) {
+        free(g->pixel_data);
+        g->pixel_data = NULL;
     }
 }
 
-static bool lockTextureCb(gpu* g)
+static bool initPixelData(gpu* g)
 {
+    // Buffer allocated in initGpuCb can be reused
+    assert (g->pixel_data);
+
     return true;
 }
 
@@ -76,8 +80,9 @@ static void renderCb(gpu* g)
     JNIEnv *env;
     jvm->AttachCurrentThread(&env, NULL);
 
-    jobject directByteBuffer = env->NewDirectByteBuffer(g->locked_pixel_data, buffer_size);
+    jobject directByteBuffer = env->NewDirectByteBuffer(g->pixel_data, buffer_size);
     env->CallStaticVoidMethod(mainActivityClass, renderCallbackMethodId, directByteBuffer);
+    env->DeleteLocalRef(directByteBuffer);
 }
 
 JNIEXPORT jboolean JNICALL
@@ -94,7 +99,7 @@ Java_com_chester_chesterapp_MainActivity_initChester(
     register_get_ticks_callback(&gChester, &ticksCb);
     register_gpu_init_callback(&gChester, &initGpuCb);
     register_gpu_uninit_callback(&gChester, &uninitGpuCb);
-    register_gpu_lock_texture_callback(&gChester, &lockTextureCb);
+    register_gpu_alloc_image_buffer_callback(&gChester, &initPixelData);
     register_gpu_render_callback(&gChester, &renderCb);
 
     button_a = false;

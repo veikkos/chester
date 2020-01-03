@@ -145,9 +145,9 @@ void register_gpu_uninit_callback(chester *chester, gpu_uninit_cb cb)
   chester->gpu_uninit_cb = cb;
 }
 
-void register_gpu_lock_texture_callback(chester *chester, gpu_lock_texture_cb cb)
+void register_gpu_alloc_image_buffer_callback(chester *chester, gpu_alloc_image_buffer_cb cb)
 {
-  chester->gpu_lock_texture_cb = cb;
+  chester->gpu_alloc_image_buffer_cb = cb;
 }
 
 void register_gpu_render_callback(chester *chester, gpu_render_cb cb)
@@ -226,7 +226,7 @@ int run(chester *chester)
         }
 
       // STOP should be handled
-      if (gpu_update(&chester->g, &chester->mem, chester->cpu_reg.clock.last.t, chester->gpu_render_cb, chester->gpu_lock_texture_cb))
+      if (gpu_update(&chester->g, &chester->mem, chester->cpu_reg.clock.last.t, chester->gpu_render_cb, chester->gpu_alloc_image_buffer_cb))
         {
           gb_log (ERROR, "GPU error");
           gpu_debug_print(&chester->g, ERROR);

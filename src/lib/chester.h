@@ -24,7 +24,7 @@ struct chester_s {
   delay_cb delay_cb;
   gpu_init_cb gpu_init_cb;
   gpu_uninit_cb gpu_uninit_cb;
-  gpu_lock_texture_cb gpu_lock_texture_cb;
+  gpu_alloc_image_buffer_cb gpu_alloc_image_buffer_cb;
   gpu_render_cb gpu_render_cb;
 };
 
@@ -40,7 +40,7 @@ void register_gpu_init_callback(chester *chester, gpu_init_cb cb);
 
 void register_gpu_uninit_callback(chester *chester, gpu_uninit_cb cb);
 
-void register_gpu_lock_texture_callback(chester *chester, gpu_lock_texture_cb cb);
+void register_gpu_alloc_image_buffer_callback(chester *chester, gpu_alloc_image_buffer_cb cb);
 
 void register_gpu_render_callback(chester *chester, gpu_render_cb cb);
 

@@ -39,7 +39,7 @@ bool init_graphics(gpu *g)
   sdl_graphics_ptr->window = NULL;
   sdl_graphics_ptr->renderer = NULL;
   sdl_graphics_ptr->texture = NULL;
-  g->locked_pixel_data = NULL;
+  g->pixel_data = NULL;
 
   SDL_Init(SDL_INIT_VIDEO);
 
@@ -89,10 +89,10 @@ void uninit_graphics(gpu *g)
   {
     sdl_graphics *sdl_graphics_ptr = (sdl_graphics*)g->app_data;
 
-    if (g->locked_pixel_data)
+    if (g->pixel_data)
       {
         SDL_UnlockTexture(sdl_graphics_ptr->texture);
-        g->locked_pixel_data = NULL;
+        g->pixel_data = NULL;
       }
 
     SDL_DestroyRenderer(sdl_graphics_ptr->renderer);
@@ -112,7 +112,7 @@ bool lock_texture(gpu *g)
   {
     sdl_graphics *sdl_graphics_ptr = (sdl_graphics*)g->app_data;
     int row_length;
-    if (SDL_LockTexture(sdl_graphics_ptr->texture, NULL, &g->locked_pixel_data, &row_length))
+    if (SDL_LockTexture(sdl_graphics_ptr->texture, NULL, &g->pixel_data, &row_length))
     {
       gb_log(ERROR, "Could not lock the background texture: %s",
              SDL_GetError());
@@ -125,7 +125,7 @@ bool lock_texture(gpu *g)
 
 void render(gpu *g)
 {
-    if (g->app_data)
+  if (g->app_data)
   {
     sdl_graphics *sdl_graphics_ptr = (sdl_graphics*)g->app_data;
 
@@ -135,10 +135,10 @@ void render(gpu *g)
     screen.w = X_RES;
     screen.h = Y_RES;
 
-    if (g->locked_pixel_data)
+    if (g->pixel_data)
       {
         SDL_UnlockTexture(sdl_graphics_ptr->texture);
-        g->locked_pixel_data = NULL;
+        g->pixel_data = NULL;
       }
 
     SDL_RenderCopy(sdl_graphics_ptr->renderer,
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
   register_delay_callback(&chester, &delay);
   register_gpu_init_callback(&chester, &init_graphics);
   register_gpu_uninit_callback(&chester, &uninit_graphics);
-  register_gpu_lock_texture_callback(&chester, &lock_texture);
+  register_gpu_alloc_image_buffer_callback(&chester, &lock_texture);
   register_gpu_render_callback(&chester, &render);
 
   if (!init(&chester, argv[1], NULL, bootloader_file))
