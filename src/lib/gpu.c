@@ -69,13 +69,14 @@ static inline void change_saturation(uint8_t *r, uint8_t *g, uint8_t *b, const d
 // Adaptation of algorithm found from https://byuu.net/video/color-emulation
 static inline void wash_colors(uint8_t *r, uint8_t *g, uint8_t *b)
 {
-  int r_weighted = (*r * 26 + *g * 4 + *b * 2);
-  int g_weighted = (*g * 24 + *b * 8);
-  int b_weighted = (*r * 6 + *g * 4 + *b * 22);
+  const int r_weighted = (*r * 30 + *g * 2);
+  const int g_weighted = (*g * 26 + *b * 6);
+  const int b_weighted = (*r * 4 + *g * 2 + *b * 26);
   *r = (r_weighted * 255) / 992;
   *g = (g_weighted * 255) / 992;
   *b = (b_weighted * 255) / 992;
 }
+
 static inline uint8_t convert_color(const uint8_t color)
 {
   return (uint8_t)((uint32_t)(color) * 0xFF / 0x1F);
