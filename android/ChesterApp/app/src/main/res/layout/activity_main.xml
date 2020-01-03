@@ -109,7 +109,7 @@
         </RelativeLayout>
 
         <ImageButton
-            android:id="@+id/settings"
+            android:id="@+id/game_select"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_margin="8dp"
@@ -117,5 +117,15 @@
             android:layout_alignParentRight="true"
             android:elevation="2dp"
             android:src="@drawable/outline_folder_black_36" />
+
+        <ImageButton
+            android:id="@+id/colors"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
+            android:elevation="2dp"
+            android:src="@drawable/baseline_color_lens_black_36" />
     </RelativeLayout>
 </RelativeLayout>

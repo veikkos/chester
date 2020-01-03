@@ -224,4 +224,12 @@ Java_com_chester_chesterapp_MainActivity_setKeyRight(
 ) {
     button_right = pressed;
 }
+
+JNIEXPORT void JNICALL
+Java_com_chester_chesterapp_MainActivity_toggleColorCorrection(
+        JNIEnv *env,
+        jobject /* this */
+) {
+    set_color_correction(&gChester, !get_color_correction(&gChester));
+}
 }

@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     final static String TAG = "Chester";
     static java.util.concurrent.atomic.AtomicBoolean paused;
     static java.util.concurrent.atomic.AtomicBoolean destroyed;
+    static java.util.concurrent.atomic.AtomicBoolean toggleColors;
     static ChesterView chesterView;
     int screenWidth;
     Thread chesterThread;
@@ -69,6 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
         paused = new java.util.concurrent.atomic.AtomicBoolean(true);
         destroyed = new java.util.concurrent.atomic.AtomicBoolean(false);
+        toggleColors = new java.util.concurrent.atomic.AtomicBoolean(false);
 
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
@@ -82,12 +84,23 @@ public class MainActivity extends AppCompatActivity {
         buttonCallbacks();
 
         final Context context = this;
-        ImageButton settings = findViewById(R.id.settings);
-        settings.setOnTouchListener(new View.OnTouchListener() {
+        ImageButton gameSelect = findViewById(R.id.game_select);
+        gameSelect.setOnTouchListener(new View.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if(event.getAction() == MotionEvent.ACTION_DOWN) {
                     openGameSelector(context);
+                }
+                return true;
+            }
+        });
+
+        ImageButton colorCorrection = findViewById(R.id.colors);
+        colorCorrection.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if(event.getAction() == MotionEvent.ACTION_DOWN) {
+                    toggleColors.set(true);
                 }
                 return true;
             }
@@ -143,6 +156,34 @@ public class MainActivity extends AppCompatActivity {
         decorView.setSystemUiVisibility(uiOptions);
     }
 
+    private Thread createChesterRunningThread() {
+        return new Thread(){
+            public void run(){
+                Log.i(TAG, "Initialized Chester");
+                int ret = 0;
+                do {
+                    if (paused.get()) {
+                        saveChester();
+                        if (destroyed.get()) {
+                            ret = -1;
+                        } else {
+                            try {
+                                Thread.sleep(350);
+                            } catch (InterruptedException ignored) {
+                            }
+                        }
+                    } else {
+                        ret = runChester();
+                        if (toggleColors.get()) {
+                            toggleColors.set(false);
+                            toggleColorCorrection();
+                        }
+                    }
+                } while(ret == 0);
+            }
+        };
+    }
+
     private void openGameSelector(final Context context)
     {
         File mPath = new File(Environment.getExternalStorageDirectory() + "//Download//");
@@ -154,27 +195,7 @@ public class MainActivity extends AppCompatActivity {
                 Log.d(getClass().getName(), "selected file " + file.toString());
                 if (initChester(file.getAbsolutePath(), getFilesDir().getAbsolutePath() + "/"))
                 {
-                    chesterThread = new Thread(){
-                        public void run(){
-                            Log.i(TAG, "Initialized Chester");
-                            int ret = 0;
-                            do {
-                                if (paused.get()) {
-                                    saveChester();
-                                    if (destroyed.get()) {
-                                        ret = -1;
-                                    } else {
-                                        try {
-                                            Thread.sleep(350);
-                                        } catch (InterruptedException ignored) {
-                                        }
-                                    }
-                                } else {
-                                    ret = runChester();
-                                }
-                            } while(ret == 0);
-                        }
-                    };
+                    chesterThread = createChesterRunningThread();
                     chesterThread.start();
                 }
                 else
@@ -356,4 +377,6 @@ public class MainActivity extends AppCompatActivity {
     public native void setKeyDown(boolean pressed);
     public native void setKeyLeft(boolean pressed);
     public native void setKeyRight(boolean pressed);
+
+    public native void toggleColorCorrection();
 }
