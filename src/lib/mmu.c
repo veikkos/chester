@@ -46,7 +46,6 @@ void mmu_reset(memory *mem)
   mem->banks.ram.written = false;
   memset(mem->banks.ram.data, 0, sizeof mem->banks.ram.data);
 
-  mem->tima_modified = false;
   mem->div_modified = false;
   mem->lcd_stopped = false;
 
@@ -248,9 +247,6 @@ static inline void write_high(memory *mem,
         break;
       case 0xFF26:
         break;
-      case MEM_TIMA_ADDR:
-        mem->tima_modified = true;
-        // Intentional fall through
       default:
         mem->io_registers[address & 0x00FF] = input;
         break;

@@ -11,15 +11,6 @@ static inline uint8_t read_timer_register(memory *mem, uint16_t address)
 
 void timer_update(registers *reg, memory *mem)
 {
-  if (mem->tima_modified)
-    {
-      mem->tima_modified = false;
-
-      gb_log (VERBOSE, "Timer value was modified");
-
-      reg->timer.tick = 0;
-    }
-
   // DIV timer
   {
     const unsigned int div = 256;

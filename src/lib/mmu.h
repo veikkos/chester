@@ -49,7 +49,6 @@ struct memory_s {
   bool bootloader_running;
   keys *k;
 
-  bool tima_modified;
   bool div_modified;
   bool lcd_stopped;
 
