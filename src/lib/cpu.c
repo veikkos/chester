@@ -354,42 +354,42 @@ static inline int sub_command(registers *reg, memory *mem)
     case 0x46:
       gb_log(ALL, "BIT 0, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 0);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x4E:
       gb_log(ALL, "BIT 1, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 1);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x56:
       gb_log(ALL, "BIT 2, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 2);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x5E:
       gb_log(ALL, "BIT 3, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 3);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x66:
       gb_log(ALL, "BIT 4, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 4);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x6E:
       gb_log(ALL, "BIT 5, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 5);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x76:
       gb_log(ALL, "BIT 6, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 6);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x7E:
       gb_log(ALL, "BIT 7, (HL)");
       bit_b_r(reg, mmu_read_byte(mem, reg->hl), 7);
-      reg->clock.last.t += 8;
+      reg->clock.last.t += 4;
       break;
     case 0x37:
       gb_log(ALL, "SWAP A");

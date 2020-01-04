@@ -138,7 +138,7 @@ static inline void jp_nn(registers *reg, uint16_t address)
 {
   reg->pc = address;
 
-  reg->clock.last.t = 12;
+  reg->clock.last.t = 16;
 }
 
 static inline void di(registers *reg)
@@ -660,7 +660,7 @@ static inline void inc_hl(registers *reg, memory *mem)
 
   inc_flags(reg, val);
 
-  reg->clock.last.t = 4;
+  reg->clock.last.t = 12;
 }
 
 static inline void daa(registers *reg)
@@ -761,7 +761,7 @@ static inline void rst_n(registers *reg, memory *mem, const uint8_t n)
 
   reg->pc = n;
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 16;
 }
 
 static inline void add_n(registers *reg, const uint8_t n)
@@ -815,7 +815,7 @@ static inline void jr_n(registers *reg, int8_t n)
 {
   reg->pc += n;
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 12;
 }
 
 static inline void adc_a_n(registers *reg, uint16_t n)
@@ -1035,7 +1035,7 @@ static inline void rla(registers *reg)
 
   reg->a = old_carry | (reg->a << 1);
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 4;
 }
 
 static inline void rl_hl(registers *reg, memory *mem)
