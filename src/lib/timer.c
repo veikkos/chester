@@ -32,7 +32,11 @@ void timer_update(registers *reg, memory *mem)
         reg->timer.tick = 0;
       }
 
-    reg->timer.t_timer += reg->clock.last.t;
+    reg->timer.t_timer += reg->clock.last.t
+#ifdef CGB
+      << reg->speed_shifter
+#endif
+      ;
 
     if (reg->timer.t_timer >= div)
       {
@@ -54,7 +58,11 @@ void timer_update(registers *reg, memory *mem)
       if (div != reg->timer.div)
         reg->timer.tick = 0;
 
-      reg->timer.tick += reg->clock.last.t / 4;
+      reg->timer.tick += (reg->clock.last.t
+#ifdef CGB
+        << reg->speed_shifter
+#endif
+        ) / 4;
 
       while (reg->timer.tick >= div)
         {

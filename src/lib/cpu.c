@@ -1198,6 +1198,8 @@ int cpu_next_command(registers *reg, memory *mem)
       reg->clock.last.t = 4;
 
 #ifdef CGB
+      reg->clock.last.t >>= reg->speed_shifter;
+
       // CPU speed switch check
       uint8_t *key1 = &mem->high_empty[MEM_KEY1_ADDR - MEM_HIGH_EMPTY_START_ADDR];
       if (*key1 & MEM_KEY1_PREPARE_SPEED_SWITCH_BIT)
@@ -1220,6 +1222,9 @@ int cpu_next_command(registers *reg, memory *mem)
   if (reg->halt)
     {
       reg->clock.last.t = 4;
+#if CGB
+      reg->clock.last.t >>= reg->speed_shifter;
+#endif
       goto isr_handling;
     }
 
