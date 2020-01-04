@@ -912,7 +912,7 @@ static inline void sla_hl(registers *reg, memory *mem)
 
   mmu_write_byte(mem, reg->hl, n);
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 16;
 }
 
 static inline void srl_n(registers *reg, uint8_t *n)
@@ -968,7 +968,7 @@ static inline void sra_hl(registers *reg, memory *mem)
   if(!(n))
     reg->f |= Z_BIT;
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 16;
 }
 
 static inline void rr_n(registers *reg, uint8_t *n)
@@ -1010,7 +1010,7 @@ static inline void rr_hl(registers *reg, memory *mem)
 
   mmu_write_byte(mem, reg->hl, n);
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 16;
 }
 
 static inline void rl_n(registers *reg, uint8_t *n)
@@ -1052,7 +1052,7 @@ static inline void rl_hl(registers *reg, memory *mem)
 
   mmu_write_byte(mem, reg->hl, n);
 
-  reg->clock.last.t = 8;
+  reg->clock.last.t = 16;
 }
 
 static inline void ld_nn_sp(registers *reg, memory *mem, uint16_t nn)

@@ -11,7 +11,10 @@ Chester has not been extensively tested. However, it doesn't have any major know
 
 ## What it does ##
 
-Chester does play several tested ROM-only, MBC1, MBC3 and MBC5 games. It also supports Game Boy Color games and in-game saving for battery backed cartridges. Its accurate CPU instruction implementation passes Blargg's CPU instruction tests.
+Chester does play several tested ROM-only, MBC1, MBC3 and MBC5
+games. It also supports Game Boy Color games and in-game saving for
+battery backed cartridges. Its accurate CPU instruction implementation
+passes Blargg's CPU instruction tests including timing.
 
 ## What is it missing ##
 
