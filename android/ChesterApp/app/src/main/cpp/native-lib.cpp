@@ -101,6 +101,7 @@ Java_com_chester_chesterapp_MainActivity_initChester(
     register_gpu_uninit_callback(&gChester, &uninitGpuCb);
     register_gpu_alloc_image_buffer_callback(&gChester, &initPixelData);
     register_gpu_render_callback(&gChester, &renderCb);
+    register_serial_callback(&gChester, NULL);
 
     button_a = false;
     button_b = false;

@@ -247,6 +247,9 @@ static inline void write_high(memory *mem,
         break;
       case 0xFF26:
         break;
+      case MEM_SB_ADDR:
+        if (mem->serial_cb) mem->serial_cb(input);
+        // Intentional fall through
       default:
         mem->io_registers[address & 0x00FF] = input;
         break;

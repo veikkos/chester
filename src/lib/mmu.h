@@ -8,6 +8,8 @@
 
 #define MBC_BATTERY_BIT 0x80
 
+typedef void (*serial_cb)(uint8_t);
+
 typedef enum {
   NONE = 0x00,
   MBC1 = 0x01,
@@ -76,6 +78,8 @@ struct memory_s {
     }h_blank;
   }dma;
 #endif
+
+  serial_cb serial_cb;
 };
 
 typedef struct memory_s memory;

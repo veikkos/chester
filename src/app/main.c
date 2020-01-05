@@ -265,6 +265,7 @@ int main(int argc, char **argv)
   register_gpu_uninit_callback(&chester, &uninit_graphics);
   register_gpu_alloc_image_buffer_callback(&chester, &lock_texture);
   register_gpu_render_callback(&chester, &render);
+  register_serial_callback(&chester, NULL);
 
   if (!init(&chester, argv[1], NULL, bootloader_file))
     {

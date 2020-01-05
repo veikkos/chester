@@ -1,6 +1,8 @@
 #include "cpu.h"
 #include "cpu_inline.h"
 
+#include <string.h>
+
 void cpu_reset(registers *reg)
 {
   reg->pc = 0x0100;
@@ -31,6 +33,8 @@ void cpu_reset(registers *reg)
 #ifdef CGB
   reg->speed_shifter = 0;
 #endif
+
+  memset(&reg->timer, 0, sizeof(reg->timer));
 }
 
 #ifndef NDEBUG
@@ -1199,6 +1203,7 @@ int cpu_next_command(registers *reg, memory *mem)
 
 #ifdef CGB
       reg->clock.last.t >>= reg->speed_shifter;
+#endif
 
       // CPU speed switch check
       uint8_t *key1 = &mem->high_empty[MEM_KEY1_ADDR - MEM_HIGH_EMPTY_START_ADDR];
@@ -1207,15 +1212,17 @@ int cpu_next_command(registers *reg, memory *mem)
           // Clear switch bit
           *key1 &= ~MEM_KEY1_PREPARE_SPEED_SWITCH_BIT;
 
+#ifdef CGB
           // Toggle mode from Normal to Double or vice versa
           *key1 ^= MEM_KEY1_MODE_BIT;
 
           // Cache mode
           reg->speed_shifter = *key1 & MEM_KEY1_MODE_BIT ? 1 : 0;
+#endif
 
           reg->stop = false;
         }
-#endif
+
       return 0;
     }
 

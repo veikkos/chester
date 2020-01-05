@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.0.0)
 project(chester)
 
 option (CGB "CGB support." ON)
@@ -7,7 +7,7 @@ if (CGB)
     message(STATUS "")
     message(STATUS " ************************")
     message(STATUS " * Enabled CGB support! *")
-    message(STATUS " ************************ ")
+    message(STATUS " ************************")
     message(STATUS "")
 
     add_definitions(-DCGB)
@@ -27,3 +27,9 @@ endif()
 
 add_subdirectory(src/lib)
 add_subdirectory(src/app)
+
+option (ROM_TESTS "Automated ROM tests with gtest." OFF)
+
+if (ROM_TESTS)
+    add_subdirectory(tests)
+endif()

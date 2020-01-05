@@ -27,10 +27,10 @@ struct gpu_s {
 
 typedef struct gpu_s gpu;
 
-typedef bool (*gpu_init_cb)(gpu* g);
-typedef void (*gpu_uninit_cb)(gpu* g);
-typedef bool (*gpu_alloc_image_buffer_cb)(gpu* g);
-typedef void (*gpu_render_cb)(gpu* g);
+typedef bool (*gpu_init_cb)(gpu*);
+typedef void (*gpu_uninit_cb)(gpu*);
+typedef bool (*gpu_alloc_image_buffer_cb)(gpu*);
+typedef void (*gpu_render_cb)(gpu*);
 
 #define X_RES 160
 #define Y_RES 144

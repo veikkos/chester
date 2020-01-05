@@ -17,6 +17,8 @@ void register_gpu_alloc_image_buffer_callback(chester *chester, gpu_alloc_image_
 
 void register_gpu_render_callback(chester *chester, gpu_render_cb cb);
 
+void register_serial_callback(chester *chester, serial_cb cb);
+
 void save_if_needed(chester *chester);
 
 #if CGB

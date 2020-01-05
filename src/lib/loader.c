@@ -5,6 +5,8 @@
 
 uint8_t* read_file(const char* path, uint32_t *size, const bool is_rom)
 {
+  if (!path) return NULL;
+
   long file_size;
   char *buffer = NULL;
   size_t read_size;

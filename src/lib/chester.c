@@ -76,7 +76,7 @@ bool init(chester *chester, const char* rom, const char* save_path, const char* 
       chester->cpu_reg.pc = 0x0000;
       mmu_set_bootloader(&chester->mem, chester->bootloader);
     }
-  else
+  else if (bootloader)
     {
       gb_log (INFO, "No bootloader found at ./%s", bootloader);
     }
@@ -153,6 +153,11 @@ void register_gpu_alloc_image_buffer_callback(chester *chester, gpu_alloc_image_
 void register_gpu_render_callback(chester *chester, gpu_render_cb cb)
 {
   chester->gpu_render_cb = cb;
+}
+
+void register_serial_callback(chester *chester, serial_cb cb)
+{
+  chester->mem.serial_cb = cb;
 }
 
 void uninit(chester *chester)

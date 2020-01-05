@@ -5,32 +5,36 @@ matrix:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake -DCGB=OFF ..
-        - make
+        - cmake -DCGB=OFF -DROM_TESTS=ON ..
+        - cmake --build .
+        - ./tests/rom-tests
       compiler: clang
     - language: c
       before_script:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake -DCGB=OFF ..
-        - make
+        - cmake -DCGB=OFF -DROM_TESTS=ON ..
+        - cmake --build .
+        - ./tests/rom-tests
       compiler: gcc
     - language: c
       before_script:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake -DCGB=ON ..
-        - make
+        - cmake -DCGB=ON -DROM_TESTS=ON ..
+        - cmake --build .
+        - ./tests/rom-tests
       compiler: clang
     - language: c
       before_script:
         - sudo apt-get install -y libsdl2-dev --no-install-suggests --no-install-recommends
       script:
         - mkdir build && cd build
-        - cmake -DCGB=ON ..
-        - make
+        - cmake -DCGB=ON -DROM_TESTS=ON ..
+        - cmake --build .
+        - ./tests/rom-tests
       compiler: gcc
     - language: android
       jdk: oraclejdk8
