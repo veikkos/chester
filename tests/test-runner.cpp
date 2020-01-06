@@ -16,17 +16,28 @@ static void serialListener(uint8_t b) {
   *outputPtr += b;
 }
 
-std::function<bool()> getValidator(RomType romType, const std::string& testOutput) {
+enum Result {
+  UNINITIALIZED,
+  ONGOING,
+  PASSED,
+  FAILED
+};
+
+std::function<Result()> getValidator(RomType romType, const std::string& testOutput) {
+  const auto validate = [](const std::string& output, const char* passCondition, const char* failCondition) {
+    return output.find(passCondition) != std::string::npos ? PASSED :
+      output.find(failCondition) != std::string::npos ? FAILED : ONGOING;
+  };
+
   switch (romType) {
   case BLARGG:
-    return [&testOutput]() {
-      return testOutput.find("Passed") != std::string::npos;
+    return [&]() {
+      return validate(testOutput, "Passed", "Failed");
     };
   case GEKKIO:
-    return [&testOutput]() {
-      // Magic number for success as can be found from
-      // "mooneye-gb/tests/common/lib/quit.s"
-      return testOutput.find("\x03\x05\x08\x0d\x15\x22") != std::string::npos;
+    return [&]() {
+      // Magic numbers as can be found in "mooneye-gb/tests/common/lib/quit.s"
+      return validate(testOutput, "\x03\x05\x08\x0d\x15\x22", "\x42\x42\x42\x42\x42\x42");
     };
   default:
     return nullptr;
@@ -55,10 +66,13 @@ void runTest(RomType romType, const char* romPath) {
   ASSERT_TRUE(validator);
 
   int i = 4 * 60;
-  while (--i && !validator())
+  Result result = UNINITIALIZED;
+  do {
     run(&chester);
+    result = validator();
+  } while(--i && result == ONGOING);
 
-  EXPECT_LT(0, i);
+  EXPECT_EQ(PASSED, result);
 
   uninit(&chester);
 }

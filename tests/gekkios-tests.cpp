@@ -22,8 +22,12 @@ TEST(Gekkio, div_write) {
   runTest(GEKKIO, "acceptance/timer/div_write.gb");
 }
 
-TEST(Gekkio, rom_4Mb) {
+TEST(Gekkio, mbc1_rom_4Mb) {
   runTest(GEKKIO, "emulator-only/mbc1/rom_4Mb.gb");
+}
+
+TEST(Gekkio, mbc5_rom_4Mb) {
+  runTest(GEKKIO, "emulator-only/mbc5/rom_4Mb.gb");
 }
 
 TEST(Gekkio, oam_dma_basic) {
