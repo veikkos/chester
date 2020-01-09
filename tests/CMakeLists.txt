@@ -72,7 +72,3 @@ target_link_libraries(${PROJECT_NAME}
 add_dependencies(${PROJECT_NAME}
     gekkios-roms
     blarggs-roms)
-
-add_custom_target(tests
-    ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}
-    DEPENDS ${PROJECT_NAME})
