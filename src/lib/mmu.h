@@ -58,7 +58,7 @@ struct memory_s {
     bool mode;
     struct {
       uint16_t selected;
-      uint32_t offset;
+      int32_t offset;
       uint16_t blocks;
     }rom;
     struct {

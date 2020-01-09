@@ -604,7 +604,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
     case READ_OAM:
       if (g->clock.t >= READ_OAM_CYCLES)
         {
-          g->clock.t = 0;
+          g->clock.t -= READ_OAM_CYCLES;
 
           set_mode(mem, READ_VRAM);
 
@@ -616,7 +616,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
     case READ_VRAM:
       if (g->clock.t >= READ_VRAM_CYCLES)
         {
-          g->clock.t = 0;
+          g->clock.t -= READ_VRAM_CYCLES;
 
 #ifdef CGB
           if (mem->cgb_mode)
@@ -636,7 +636,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
     case HBLANK:
       if (g->clock.t >= HBLANK_CYCLES)
         {
-          g->clock.t = 0;
+          g->clock.t -= HBLANK_CYCLES;
 
           if (++line == 144)
             {
@@ -664,7 +664,7 @@ int gpu_update(gpu *g, memory *mem, const uint8_t last_t, gpu_render_cb r_cb, gp
     case VBLANK:
       if (g->clock.t >= VBLANK_CYCLES)
         {
-          g->clock.t = 0;
+          g->clock.t -= VBLANK_CYCLES;
 
           if (++line == 154)
             {

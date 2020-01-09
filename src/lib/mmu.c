@@ -1,4 +1,5 @@
 #include "mmu.h"
+#include "memory_inline.h"
 #include "interrupts.h"
 #include "logger.h"
 
@@ -220,7 +221,7 @@ static inline void write_high(memory *mem,
             !(input & MEM_LCDC_SCREEN_ENABLED_FLAG))
           {
             mem->io_registers[MEM_LY_ADDR & 0x00FF] = 0;
-            isr_compare_ly_lyc(mem, 0, mmu_read_byte(mem, MEM_LYC_ADDR));
+            isr_compare_ly_lyc(mem, 0, read_io_byte(mem, MEM_LYC_ADDR));
 
             mem->lcd_stopped = true;
           }
@@ -235,12 +236,12 @@ static inline void write_high(memory *mem,
         break;
       case MEM_LY_ADDR:
         mem->io_registers[address & 0x00FF] = 0;
-        isr_compare_ly_lyc(mem, 0, mmu_read_byte(mem, MEM_LYC_ADDR));
+        isr_compare_ly_lyc(mem, 0, read_io_byte(mem, MEM_LYC_ADDR));
         break;
       case MEM_LYC_ADDR:
         gb_log(VERBOSE, "LYC == (%d)", input);
         mem->io_registers[address & 0x00FF] = input;
-        isr_compare_ly_lyc(mem, mmu_read_byte(mem, MEM_LY_ADDR), input);
+        isr_compare_ly_lyc(mem, read_io_byte(mem, MEM_LY_ADDR), input);
         break;
       case MEM_DMA_ADDR:
         dma(mem, input);
